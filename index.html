@@ -407,8 +407,9 @@
         inset: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
         flex-direction: column;
+        padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));   /* 月の真上に重ならないよう下寄せ */
         pointer-events: none;
         opacity: 0;
         transition: opacity 1.2s ease;
@@ -419,7 +420,7 @@
       #moment .a {
         font-family: var(--serif);
         font-weight: 800;
-        font-size: clamp(44px, 8vw, 96px);
+        font-size: clamp(40px, 6vw, 80px);
         letter-spacing: 0.3em;
         color: #fff6de;
       }
@@ -2324,6 +2325,8 @@
         const ext = (k) => Math.exp(-k * (airmass - 1));
         moonMat.uniforms.tint.value.setRGB(ext(0.12), ext(0.2), ext(0.34));
         skyU.moonGlow.value *= 0.4 + 0.6 * ext(0.2);
+        // 望遠では月に露出を合わせるので、月のまわりの空や雲のにじみは暗く締まる
+        if (state.lens >= 200) skyU.moonGlow.value *= 0.22;
       }
 
       // ============================================================
@@ -2456,7 +2459,7 @@
           document.querySelectorAll(".btns [data-q]").forEach((x) => x.classList.toggle("on", x === b));
           if (q === "full") {
             setT(FULL_MOON.getTime());
-            setLens(50);
+            setLens(600);
           }
           if (q === "now") {
             const n = Date.now();
