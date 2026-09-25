@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>今夜の名月</title>
+<meta name="description" content="2026年の中秋の名月は満月じゃない。今夜の本物の月を天文計算で描き、ずれの理由を触って確かめるページ。" />
+<link rel="stylesheet" href="./fonts/fonts.css" />
+<style>
+:root{
+  color-scheme: dark;
+  --ink:#f2ecdf; --dim:#a8afc0; --mute:#6f778c; --gold:#e8c67e; --gold2:#b8954c; --shu:#d0543a;
+  --glass:rgba(9,13,26,.62); --glass2:rgba(9,13,26,.82); --line:rgba(242,236,223,.16);
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:#05070f;color:var(--ink);font-family:var(--sans)}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+.glass{background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line)}
+button,select{font-family:var(--sans);color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---- top-left: title and place ---- */
+#top{position:fixed;left:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px;max-width:min(420px,calc(100% - 32px))}
+#top .eyebrow{font-size:11px;letter-spacing:.34em;color:var(--gold)}
+#top h1{font-family:var(--serif);font-weight:800;font-size:clamp(26px,3.4vw,38px);letter-spacing:.14em;margin:0;line-height:1.15;text-shadow:0 2px 14px rgba(0,0,0,.6)}
+#top .when{font-family:var(--serif);font-weight:600;font-size:16px;letter-spacing:.06em;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+#top .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#top select{background:var(--glass);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px}
+#top .made{font-size:11px;color:var(--dim);letter-spacing:.06em;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#top .pill{font-size:12px;color:var(--dim);padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--glass)}
+
+/* ---- right: explainer ---- */
+#panel{position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));width:400px;border-radius:14px;overflow:auto;padding:22px 22px 26px;scrollbar-width:thin}
+#panel .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--gold)}
+#panel h2{font-family:var(--serif);font-weight:800;font-size:28px;line-height:1.35;letter-spacing:.04em;margin:8px 0 10px;text-wrap:balance}
+#panel h3{font-family:var(--serif);font-weight:600;font-size:18px;letter-spacing:.06em;margin:26px 0 8px;padding-top:18px;border-top:1px solid var(--line)}
+#panel p{font-size:14px;line-height:1.85;color:#d9d6ce;margin:0 0 10px}
+#panel b{color:var(--gold);font-weight:700}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
+.stat{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.stat .k{font-size:11px;color:var(--dim);letter-spacing:.12em}
+.stat .v{font-family:var(--serif);font-weight:600;font-size:22px;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat .v small{font-size:12px;color:var(--dim);margin-left:3px;font-family:var(--sans)}
+canvas.fig{width:100%;display:block;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin:8px 0 6px}
+.cap{font-size:11.5px;color:var(--dim);line-height:1.6}
+.years{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin:10px 0 6px}
+.years div{font-size:10.5px;text-align:center;padding:5px 0;border-radius:5px;font-variant-numeric:tabular-nums;color:var(--dim);background:rgba(255,255,255,.035)}
+.years .d0{background:rgba(232,198,126,.22);color:var(--ink)}
+.years .d2{outline:1.5px solid var(--shu);color:var(--ink)}
+.years .now{background:var(--shu);color:#fff;outline:none;font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.credit{font-size:11px;color:var(--mute);line-height:1.7;margin-top:22px}
+.credit a{color:var(--dim)}
+#panelToggle{display:none}
+
+/* ---- telescope ---- */
+#scope{position:fixed;left:16px;bottom:calc(104px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:14px;row-gap:6px;align-items:end}
+#scopeWrap{grid-column:1;grid-row:1}
+#scope .cap{grid-column:1;grid-row:2;justify-content:center}
+#hook{grid-column:2;grid-row:1}
+#scopeWrap{position:relative;width:240px;height:240px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 0 0 6px rgba(9,13,26,.55),0 10px 40px rgba(0,0,0,.5)}
+#scopeCanvas{width:240px;height:240px;display:block}
+#scopeLabels{position:absolute;inset:0;pointer-events:none}
+#scopeLabels span{position:absolute;transform:translate(-50%,-50%);font-size:10px;letter-spacing:.04em;color:#fff;text-shadow:0 0 4px #000,0 0 2px #000;white-space:nowrap}
+#scope .cap{display:flex;gap:10px;align-items:center}
+#scope label{display:flex;gap:4px;align-items:center;cursor:pointer}
+
+/* ---- bottom bar: time ---- */
+#bar{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));border-radius:14px;padding:10px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+#play{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:15px;cursor:pointer}
+#slider{width:100%;accent-color:var(--gold)}
+#ticks{position:relative;height:14px;font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums}
+#ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+#ticks span.hl{color:var(--gold)}
+.qs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.qs button{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;white-space:nowrap}
+.qs button.on{background:var(--gold);color:#1a1408;border-color:var(--gold)}
+.lens{display:flex;gap:4px;margin-top:6px;justify-content:flex-end}
+.lens button{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;cursor:pointer;font-variant-numeric:tabular-nums}
+.lens button.on{border-color:var(--gold);color:var(--gold)}
+#hook{font-family:var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none;align-self:end;padding-bottom:8px;max-width:210px}
+#hook .k{font-size:13px;letter-spacing:.2em;color:var(--dim);font-family:var(--sans)}
+#hook .v{font-weight:800;font-size:44px;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+#hook .v small{font-size:18px;margin-left:4px;color:var(--dim)}
+#hook .h{font-size:12px;color:var(--gold);font-family:var(--sans);margin-top:4px}
+#moment{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;opacity:0;transition:opacity 1.2s ease;text-shadow:0 2px 24px rgba(0,0,0,.8)}
+#moment.on{opacity:1}
+#moment .a{font-family:var(--serif);font-weight:800;font-size:clamp(40px,7vw,86px);letter-spacing:.3em;color:#fff6de}
+#moment .b{font-size:15px;letter-spacing:.2em;color:var(--gold);margin-top:10px}
+#banner{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);font-size:13px;padding:7px 14px;border-radius:999px;white-space:nowrap}
+#banner b{color:var(--gold);font-weight:700}
+#banner.live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5a4a;margin-right:8px;vertical-align:0;animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+#shot{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--gold);background:rgba(232,198,126,.15);color:var(--gold);cursor:pointer}
+#hidePanel{position:absolute;right:14px;top:12px;font-size:11px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--dim)}
+#showPanel{position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer}
+#scopeWrap{cursor:ew-resize}
+#planetLbl{position:fixed;pointer-events:none;font-size:11px;color:#ffe9b8;text-shadow:0 0 4px #000;transform:translate(8px,-50%)}
+
+@media (max-width: 900px){
+  #hook .v{font-size:26px}
+  #hook .h{display:none}
+  #banner{top:auto;bottom:calc(210px + env(safe-area-inset-bottom,0px));font-size:11px}
+  #hidePanel,#showPanel{display:none!important}
+
+  #panel{left:12px;right:12px;width:auto;top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-height:52vh;transform:translateY(calc(100% + 170px));transition:transform .35s ease}
+  #panel.open{transform:none}
+  #panelToggle{display:block;position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer}
+  #scope{left:auto;right:12px;bottom:calc(158px + env(safe-area-inset-bottom,0px))}
+  #scopeWrap,#scopeCanvas{width:130px;height:130px}
+  #scope .cap{font-size:10px}
+  #bar{grid-template-columns:auto 1fr;left:10px;right:10px}
+  #bar .right{grid-column:1 / -1}
+  .qs{justify-content:flex-start}
+  .lens{justify-content:flex-start}
+}
+@media (prefers-reduced-motion: reduce){#panel{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="縁側から見た今夜の月の3D表示。ドラッグで見回せます。"></canvas>
+
+<div id="top">
+  <div class="eyebrow">2026 中秋の名月</div>
+  <h1>今夜の名月</h1>
+  <div class="when" id="when">9月25日(金) 20:00</div>
+  <div class="row">
+    <select id="city" aria-label="見る場所"></select>
+    <span class="pill" id="riseInfo">月の出 16:41</span>
+  </div>
+  <div class="made">Claude Opus 5.5 で制作 ・ 画像も3Dモデルも使わず、すべてコード</div>
+</div>
+
+<div id="banner" class="glass"></div>
+
+<div id="moment"><div class="a">満月</div><div class="b" id="momentSub">9月27日 1:49</div></div>
+<button id="showPanel" class="glass" type="button" hidden>なぜ満月じゃない？</button>
+<button id="panelToggle" class="glass" type="button">なぜ満月じゃない？</button>
+<aside id="panel" class="glass" aria-label="解説">
+  <button id="hidePanel" type="button">閉じる</button>
+  <div class="eyebrow">2026年9月25日（金）</div>
+  <h2>今夜の月は、満月じゃない。</h2>
+  <p>今年の十五夜（中秋の名月）は<b>9月25日</b>。でも月がいちばん丸くなる満月は、2日後の<b>9月27日 1時49分</b>です。</p>
+  <div class="stats">
+    <div class="stat"><div class="k">月齢</div><div class="v" id="sAge">14.3</div></div>
+    <div class="stat"><div class="k">輝いている割合</div><div class="v" id="sFrac">98.2<small>%</small></div></div>
+    <div class="stat"><div class="k" id="sToLabel">満月まで</div><div class="v" id="sTo">29<small>時間</small>49<small>分</small></div></div>
+    <div class="stat"><div class="k">月までの距離</div><div class="v" id="sDist">380,869<small>km</small></div></div>
+  </div>
+
+  <h3>十五夜は「新月から数えて15日目」</h3>
+  <p>旧暦では、新月の日を1日と数えます。今年は<b>9月11日</b>（12時27分に新月）が旧暦の8月1日なので、15日目の9月25日が十五夜になります。</p>
+  <canvas class="fig" id="cal" width="712" height="190"></canvas>
+  <div class="cap">各日20時の月の形。旧暦の日付と並べると、満月は17日目にずれ込んでいます。</div>
+
+  <h3>新月から満月までは、毎回ちがう</h3>
+  <p>新月から満月までは平均14.77日ですが、月の通り道は楕円なので、地球から遠いところでは月がゆっくり進みます。2000〜2050年では<b>13.91日〜15.61日</b>の幅があり、今年は<b>15.56日</b>とほぼ最長。9月19日に、月が地球からいちばん遠い点（40万4,210km）を通ったためです。</p>
+  <canvas class="fig" id="orbit" width="712" height="460"></canvas>
+  <div class="cap">北から見た月の通り道（楕円は誇張しています）。黄色い点が、スライダーで選んだ時刻の月です。</div>
+
+  <h3>2日ずれるのは、51年で7回</h3>
+  <p>2000〜2050年の中秋の名月のうち、満月と同じ日は21回、1日ずれが23回。<b>2日ずれは7回だけ</b>で、前回は2017年、次は2043年です。次に十五夜と満月が同じ日になるのは2030年。</p>
+  <div class="years" id="years"></div>
+  <div class="legend"><span><i style="background:rgba(232,198,126,.5)"></i>満月と同じ日</span><span><i style="background:rgba(255,255,255,.08)"></i>1日ずれ</span><span><i style="outline:1.5px solid var(--shu)"></i>2日ずれ</span></div>
+
+  <h3>この月は、計算で描いています</h3>
+  <p>月の位置・欠け方・模様の傾き・秤動（見える面のわずかな揺れ）は、選んだ場所と時刻から天文計算ライブラリ Astronomy Engine で求めています。月面は、満月が縁まで平らに明るく見える実際の光り方（ロンメル・ゼーリガー則）で描いています。</p>
+  <p>カメラのレンズを600mmにすると、写真と同じように月が大きく写ります。「月の出を望遠で」を押すと、今夜の月の出を再現します。</p>
+  <div class="credit">画像・3Dモデルは使わず、すべてコードで生成。Built with Claude Opus 5.5.<br>天文計算：Astronomy Engine（MIT）／3D：three.js（MIT）<br><a href="https://github.com/aiimpl/meigetsu" target="_blank" rel="noopener">ソースコード（GitHub）</a></div>
+</aside>
+
+<div id="scope">
+  <div id="hook"><div class="k">満月まで、あと</div><div class="v" id="hookV">1.8<small>%</small></div><div class="h">望遠鏡の月を横にドラッグして、満月にしてみる →</div></div>
+  <div id="scopeWrap"><canvas id="scopeCanvas" width="480" height="480"></canvas><div id="scopeLabels"></div></div>
+  <div class="cap"><span>望遠鏡</span><label><input type="checkbox" id="lblToggle" /> 海の名前</label><button id="shot" type="button">この月を撮る</button></div>
+</div>
+<div id="planetLbl"></div>
+
+<div id="bar" class="glass">
+  <button id="play" type="button" aria-label="再生">▶</button>
+  <div>
+    <input id="slider" type="range" min="0" max="100" step="1" aria-label="時刻" />
+    <div id="ticks"></div>
+  </div>
+  <div class="right">
+    <div class="qs">
+      <button type="button" data-q="rise">月の出を望遠で</button>
+      <button type="button" data-q="jugoya">十五夜 20時</button>
+      <button type="button" data-q="full">満月の瞬間</button>
+      <button type="button" data-q="now">いま</button>
+      <button type="button" id="sound">音を出す</button>
+      <button type="button" id="cloudBtn">雲あり</button>
+    </div>
+    <div class="lens" id="lens"></div>
+  </div>
+</div>
+
+<script src="./vendor/astronomy-engine/astronomy.browser.min.js"></script>
+<script type="importmap">
+{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}
+</script>
+<script type="module">
+// ============================================================
+// 今夜の名月
+// 2026年の中秋の名月（9月25日）を、天文計算どおりに描く。
+// 月の位置・欠け方・模様の向き・秤動は Astronomy Engine で求め、
+// three.js で縁側からの夜景として表示する。画像ファイルは使わない。
+// ============================================================
+import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+
+const Astro = window.Astronomy;
+const HOUR = 36e5, DAY = 864e5, JST = 9 * HOUR, AU_KM = 149597870.7, MOON_R_KM = 1737.4;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const DEG = Math.PI / 180;
+
+// ============================================================
+// 暦と天文の基本データ（すべて計算で求める）
+// ============================================================
+const NEW_MOON = Astro.SearchMoonPhase(0, new Date("2026-09-05T00:00:00Z"), 20).date;   // 9/11 12:27 JST
+const FULL_MOON = Astro.SearchMoonPhase(180, NEW_MOON, 20).date;                        // 9/27 01:49 JST
+const APOGEE = Astro.SearchLunarApsis(new Date("2026-09-12T00:00:00Z"));                  // 9/19 遠地点
+const T_START = Date.UTC(2026, 8, 24, 7, 0);   // 9/24 16:00 JST
+const T_END = Date.UTC(2026, 8, 27, 21, 0);    // 9/28 06:00 JST
+const T_JUGOYA = Date.UTC(2026, 8, 25, 11, 0); // 9/25 20:00 JST
+
+const CITIES = [
+  ["札幌", 43.0621, 141.3544], ["仙台", 38.2682, 140.8694], ["東京", 35.6812, 139.7671], ["名古屋", 35.1709, 136.8815],
+  ["大阪", 34.7025, 135.4959], ["広島", 34.3978, 132.4753], ["福岡", 33.5902, 130.4207], ["那覇", 26.2124, 127.6809],
+];
+const WEEK = "日月火水木金土";
+const fmtJST = (ms, withDay = true) => {
+  const d = new Date(ms + JST);
+  const hm = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  return withDay ? `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${WEEK[d.getUTCDay()]}) ${hm}` : hm;
+};
+const jstDay = (ms) => { const d = new Date(ms + JST); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+
+// 中秋の名月の日付：秋分を含む旧暦月（＝8月）の15日目。満月の日付との差を返す
+function meigetsuDiff(year) {
+  const eqx = Astro.Seasons(year).sep_equinox.date, eqd = jstDay(eqx.getTime());
+  let s = Astro.SearchMoonPhase(0, new Date(eqx.getTime() - 35 * DAY), 40), n1;
+  for (;;) { n1 = Astro.SearchMoonPhase(0, new Date(s.date.getTime() + DAY), 40); if (jstDay(n1.date.getTime()) > eqd) break; s = n1; }
+  const mei = jstDay(s.date.getTime()) + 14 * DAY, f = Astro.SearchMoonPhase(180, s.date, 20);
+  return Math.round((jstDay(f.date.getTime()) - mei) / DAY);
+}
+
+// ============================================================
+// 状態
+// ============================================================
+const state = { live: false, t: T_JUGOYA - HOUR, city: 2, lens: 14, follow: true, yaw: 0, pitch: 0.2, playing: false, labels: false, obs: null, dirty: true };
+const now = Date.now();
+if (now > Date.UTC(2026, 8, 25, 7, 41) && now < T_END) { state.t = now; state.live = true; }
+
+// ============================================================
+// レンダラー・シーン
+// ============================================================
+const canvas = document.getElementById("gl");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 20000);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.9, 0.55, 0.82);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+// 仕上げ：周辺減光とフィルムの粒子（前作と同じ処理）
+const gradePass = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uT: { value: 0 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uT; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); float v = smoothstep(1.1, .32, length((vUv-.5)*vec2(1.3,1.)));
+      c.rgb *= mix(.55, 1., v); c.rgb = mix(c.rgb, c.rgb*c.rgb*(3.-2.*c.rgb), .15); c.rgb += (h(vUv*1100. + fract(uT)) - .5) * .028; gl_FragColor = c; }` });
+composer.addPass(gradePass);
+
+// 天文の座標（HOR：x=北 y=西 z=天頂）→ three.js（x=東 y=上 z=南）
+const horToWorld = (v) => new THREE.Vector3(-v.y, v.z, -v.x);
+const azAltToWorld = (az, alt) => new THREE.Vector3(Math.sin(az * DEG) * Math.cos(alt * DEG), Math.sin(alt * DEG), -Math.cos(az * DEG) * Math.cos(alt * DEG));
+
+// ============================================================
+// 空：太陽の高さで昼→夕焼け→薄明→夜を描き分け、月の周りを明るくする
+// ============================================================
+const skyU = { sunDir: { value: new THREE.Vector3() }, moonDir: { value: new THREE.Vector3() }, moonGlow: { value: 1 } };
+const sky = new THREE.Mesh(new THREE.SphereGeometry(9000, 64, 32), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, uniforms: skyU,
+  vertexShader: `varying vec3 vD; void main(){ vD = position; vec4 p = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position = p.xyww; }`,
+  fragmentShader: `
+    uniform vec3 sunDir, moonDir; uniform float moonGlow; varying vec3 vD;
+    void main(){
+      vec3 d = normalize(vD); float s = sunDir.y;
+      vec3 dayZ=vec3(.13,.3,.66), dayH=vec3(.55,.66,.8), setZ=vec3(.1,.14,.3), setH=vec3(.78,.5,.36);
+      vec3 twZ=vec3(.028,.05,.12), twH=vec3(.16,.17,.3), nZ=vec3(.004,.009,.024), nH=vec3(.016,.028,.058);
+      float kDay=smoothstep(.03,.28,s), kSet=smoothstep(-.1,.03,s), kTw=smoothstep(-.32,-.1,s);
+      vec3 zen=mix(mix(mix(nZ,twZ,kTw),setZ,kSet),dayZ,kDay), hor=mix(mix(mix(nH,twH,kTw),setH,kSet),dayH,kDay);
+      float y = max(d.y, 0.);
+      vec3 col = mix(hor, zen, pow(y, .42));
+      vec2 hd = normalize(d.xz + 1e-5), hs = normalize(sunDir.xz + 1e-5);
+      float sd = max(dot(hd, hs), 0.);
+      col += vec3(1.,.42,.18) * pow(sd, 3.) * exp(-y*5.) * smoothstep(-.28,-.02,s) * (1.-kDay) * .7;
+      float cs = max(dot(d, sunDir), 0.);
+      col += vec3(1.,.88,.7) * (pow(cs,900.)*30. + pow(cs,14.)*.22) * smoothstep(-.03,.02,s);
+      float cm = max(dot(d, moonDir), 0.);
+      col += vec3(.72,.8,1.) * moonGlow * (pow(cm,60.)*.09 + pow(cm,8.)*.035 + pow(cm,2.)*.012) * (1.-kDay*.92);
+      float anti = pow(max(dot(hd, -hs), 0.), 1.6), twi = smoothstep(-.12,-.02,s) * (1.-smoothstep(.03,.1,s));
+      col = mix(col, vec3(.2,.24,.38), anti * twi * exp(-y*26.) * .8);
+      col += vec3(.55,.3,.36) * anti * twi * exp(-pow((y-.09)/.055, 2.)) * .55;
+      if (d.y < 0.) col = mix(hor*.55, hor*.2, clamp(-d.y*5., 0., 1.));
+      gl_FragColor = vec4(col, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+}));
+sky.renderOrder = -10;
+scene.add(sky);
+
+// ============================================================
+// 月に叢雲：月より手前の半球に、月明かりで縁が光る薄雲を流す
+// ============================================================
+const cloudU = { uT: { value: 0 }, amt: { value: 0.24 }, moonDir: skyU.moonDir, sunDir: skyU.sunDir, moonGlow: skyU.moonGlow };
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(4200, 64, 32), new THREE.ShaderMaterial({
+  side: THREE.BackSide, transparent: true, depthWrite: false, uniforms: cloudU,
+  vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform float uT, amt, moonGlow; uniform vec3 moonDir, sunDir; varying vec3 vD;
+    float hs(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*.1031); p3 += dot(p3, p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+    float vn(vec2 p){ vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f); return mix(mix(hs(i),hs(i+vec2(1,0)),u.x), mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),u.x), u.y); }
+    float fbm(vec2 p){ float v=0., a=.5; mat2 r=mat2(.8,.6,-.6,.8); for(int i=0;i<5;i++){ v+=a*vn(p); p=r*p*2.03; a*=.5; } return v; }
+    void main(){
+      vec3 d = normalize(vD); if (d.y < 0.) discard;
+      vec2 uv = d.xz/(d.y+.12)*.9 + vec2(uT*.006, uT*.0022);
+      float n = fbm(uv*1.4)*.8 + fbm(uv*4.2+3.)*.32;
+      float cov = smoothstep(.56,.84,n) * amt * smoothstep(0.,.1,d.y);
+      float thin = 1. - smoothstep(.62,.9,n);
+      float cm = max(dot(d, moonDir), 0.), day = smoothstep(-.1,.2,sunDir.y), tw = smoothstep(-.3,-.05,sunDir.y);
+      vec3 night = mix(vec3(.02,.025,.04), vec3(.12,.1,.12), tw) + vec3(.85,.88,1.) * moonGlow * (pow(cm,40.)*1.5 + pow(cm,6.)*.18) * (.2 + .8*thin);
+      vec3 c = mix(night, vec3(.92,.9,.88)*mix(.55,1.,day), day);
+      gl_FragColor = vec4(c, cov*.9);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+}));
+clouds.renderOrder = 5; scene.add(clouds);
+
+// ============================================================
+// 星：J2000の赤道座標に置いたグループを、時刻と場所の回転で地平座標へ回す
+// ============================================================
+const BRIGHT = [
+  [6.752,-16.72,-1.46],[6.399,-52.7,-.74],[14.261,19.18,-.05],[18.616,38.78,.03],[5.278,46.0,.08],[5.242,-8.2,.13],[7.655,5.22,.34],[5.919,7.41,.5],
+  [1.629,-57.24,.46],[19.846,8.87,.77],[4.599,16.51,.86],[16.49,-26.43,.96],[13.42,-11.16,.97],[7.755,28.03,1.14],[22.961,-29.62,1.16],[20.69,45.28,1.25],
+  [10.139,11.97,1.35],[7.577,31.89,1.58],[5.419,6.35,1.64],[5.438,28.61,1.65],[5.603,-1.2,1.69],[5.679,-1.94,1.74],[5.533,-.3,2.23],[11.062,61.75,1.79],
+  [12.9,55.96,1.77],[13.792,49.31,1.86],[13.399,54.93,2.23],[11.031,56.38,2.37],[11.897,53.69,2.44],[12.257,57.03,3.31],[2.53,89.26,1.98],[3.405,49.86,1.79],
+  [2.119,23.46,2.0],[.14,29.09,2.06],[1.162,35.62,2.05],[2.065,42.33,2.1],[23.063,28.08,2.42],[23.079,15.21,2.49],[.221,15.18,2.83],[.727,-17.99,2.04],
+  [.675,56.54,2.24],[.153,59.15,2.28],[.945,60.72,2.47],[1.43,60.24,2.68],[1.907,63.67,3.37],[3.136,40.96,2.12],[21.736,9.88,2.38],[20.37,40.26,2.23],
+  [19.512,27.96,3.05],[17.582,12.56,2.07],[3.791,24.1,2.87],[3.75,24.11,3.7],[3.772,24.47,3.6],[3.82,23.95,4.2],[3.763,24.37,4.3],[3.744,24.29,4.0],
+];
+const starGroup = new THREE.Group();
+{
+  const pos = [], size = [];
+  const add = (raH, dec, mag) => {
+    const ra = raH * 15 * DEG, de = dec * DEG, r = 8500;
+    pos.push(r * Math.cos(de) * Math.cos(ra), r * Math.cos(de) * Math.sin(ra), r * Math.sin(de));
+    size.push(clamp(3.6 * Math.pow(10, -0.2 * (mag - 1)), 0.7, 7));
+  };
+  for (const [ra, de, m] of BRIGHT) add(ra, de, m);
+  let s = 7;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 2600; i++) { const u = rnd() * 2 - 1, th = rnd() * Math.PI * 2; add(th / (15 * DEG), Math.asin(u) / DEG, 3.2 + Math.pow(rnd(), .55) * 2.8); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("size", new THREE.Float32BufferAttribute(size, 1));
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { vis: { value: 1 }, moonDir: skyU.moonDir, pr: { value: renderer.getPixelRatio() } },
+    vertexShader: `attribute float size; uniform float pr; varying float vA; varying vec3 vW;
+      void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = normalize(w.xyz); vA = size; vec4 mv = viewMatrix*w; gl_PointSize = size*pr; gl_Position = projectionMatrix*mv; }`,
+    fragmentShader: `uniform float vis; uniform vec3 moonDir; varying float vA; varying vec3 vW;
+      void main(){ float d = length(gl_PointCoord-.5); float a = smoothstep(.5,.0,d);
+        float glare = smoothstep(.994,.955, dot(vW, moonDir)); float ext = smoothstep(-.01,.12, vW.y);
+        gl_FragColor = vec4(vec3(.92,.95,1.), a*vis*glare*ext*clamp(vA/2.5,.25,1.)); }`,
+  });
+  starGroup.add(new THREE.Points(g, m));
+  starGroup.userData.mat = m;
+  starGroup.matrixAutoUpdate = false;
+  scene.add(starGroup);
+}
+
+// 惑星（土星・木星・金星・火星）：実際の位置に光点を置く
+const PLANETS = [["土星", "Saturn"], ["木星", "Jupiter"], ["金星", "Venus"], ["火星", "Mars"]];
+const planetPts = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.4, sizeAttenuation: false, color: 0xffeecc, transparent: true, depthWrite: false }));
+planetPts.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(PLANETS.length * 3), 3));
+scene.add(planetPts);
+
+// ============================================================
+// 月面テクスチャ：主な海とクレーターを月面座標（緯度・経度）に描く
+// ============================================================
+const MARIA = [
+  ["嵐の大洋", 18, -57, 24, 26], ["雨の海", 33, -16, 17, 13], ["晴れの海", 28, 17.5, 10, 9], ["静かの海", 8.5, 31, 13, 9],
+  ["危難の海", 17, 59, 8, 6], ["豊かの海", -8, 51, 8, 10], ["神酒の海", -15, 35, 5.5, 5], ["雲の海", -21, -17, 11, 9],
+  ["湿りの海", -24, -39, 6, 5], ["氷の海", 56, 0, 42, 4.5],
+];
+const EXTRA_DARK = [[13, 4, 4, 3], [2, 1, 3, 2], [-10, -23, 5, 4], [7, -30, 6, 5], [5, -50, 12, 14], [32, -50, 12, 12], [-2, -64, 9, 10], [-1, 87, 5, 5], [13, 86, 4, 4]];
+const moonTex = (() => {
+  const W = 2048, H = 1024, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+  const X = (lon) => ((lon / 360 + 0.5) % 1 + 1) % 1 * W, Y = (lat) => (90 - lat) / 180 * H;
+  let s = 11; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  g.fillStyle = "#b7b2a8"; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 9000; i++) { const x = rnd() * W, y = rnd() * H, r = Math.pow(rnd(), 3) * 16 + 1, l = rnd() < .5 ? 0 : 255; g.fillStyle = `rgba(${l},${l},${l},${.025 + rnd() * .04})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  g.filter = "blur(5px)";
+  const blob = (lat, lon, rl, rb, col) => {
+    g.fillStyle = col; const cx = X(lon), cy = Y(lat), sx = rl / 360 * W / Math.max(Math.cos(lat * DEG), .35), sy = rb / 180 * H;
+    g.beginPath(); g.ellipse(cx, cy, sx, sy, 0, 0, 7); g.fill();
+    for (let k = 0; k < 26; k++) { const a = rnd() * 7, rr = .75 + rnd() * .35; g.beginPath(); g.ellipse(cx + Math.cos(a) * sx * rr, cy + Math.sin(a) * sy * rr, sx * (.18 + rnd() * .22), sy * (.18 + rnd() * .22), 0, 0, 7); g.fill(); }
+  };
+  for (const [, lat, lon, rl, rb] of MARIA) blob(lat, lon, rl, rb, "#6c6964");
+  for (const [lat, lon, rl, rb] of EXTRA_DARK) blob(lat, lon, rl, rb, "#74716b");
+  g.filter = "blur(1.2px)";
+  const crater = (lat, lon, r, dark) => { g.fillStyle = dark ? "#4e4c49" : "#e2ded6"; g.beginPath(); g.arc(X(lon), Y(lat), r, 0, 7); g.fill(); };
+  const rays = (lat, lon, n, len, alpha) => {
+    const cx = X(lon), cy = Y(lat);
+    for (let k = 0; k < n; k++) { const a = rnd() * 7, l = len * (.4 + rnd() * .8); g.strokeStyle = `rgba(232,228,220,${alpha * (.5 + rnd() * .5)})`; g.lineWidth = 1.5 + rnd() * 3; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * l * 1.3, cy + Math.sin(a) * l); g.stroke(); }
+  };
+  rays(-43.3, -11.2, 42, 300, .22); rays(9.6, -20.1, 26, 120, .2); rays(8.1, -38, 16, 70, .18); rays(16.1, 46.8, 12, 60, .16);
+  crater(-43.3, -11.2, 9); crater(9.6, -20.1, 8); crater(8.1, -38, 5); crater(23.7, -47.4, 6); crater(16.1, 46.8, 4);
+  crater(51.6, -9.4, 7, true); crater(-5.2, -68.6, 9, true);
+  for (let i = 0; i < 700; i++) { const lat = (rnd() * 2 - 1) * 80, lon = (rnd() * 2 - 1) * 180, r = Math.pow(rnd(), 4) * 7 + 1; crater(lat, lon, r, rnd() < .35); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+})();
+
+// ============================================================
+// 月：ロンメル・ゼーリガー則（満月が縁まで平らに明るく見える反射）
+// ============================================================
+const moonMat = new THREE.ShaderMaterial({
+  uniforms: { map: { value: moonTex }, sunDir: { value: new THREE.Vector3(1, 0, 0) }, intensity: { value: 3 }, earthshine: { value: 0.002 }, tint: { value: new THREE.Color(1, 1, 1) } },
+  vertexShader: `varying vec3 vN, vW; varying vec2 vUv;
+    void main(){ vUv = uv; vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `uniform sampler2D map; uniform vec3 sunDir, tint; uniform float intensity, earthshine; varying vec3 vN, vW; varying vec2 vUv;
+    void main(){
+      vec3 n = normalize(vN), v = normalize(cameraPosition - vW);
+      float mu0 = dot(n, sunDir), mu = max(dot(n, v), 0.);
+      float ls = mu0 > 0. ? 2.*mu0/(mu0 + mu + 1e-4) : 0.;
+      ls *= smoothstep(-.015, .04, mu0);
+      vec3 alb = texture2D(map, vUv).rgb;
+      gl_FragColor = vec4((alb*ls*intensity + alb*earthshine) * tint, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+});
+const moonGeo = new THREE.SphereGeometry(1, 128, 96);
+const moon = new THREE.Mesh(moonGeo, moonMat);
+moon.matrixAutoUpdate = false;
+scene.add(moon);
+const MOON_D = 5000;
+
+// ============================================================
+// 地形：手前は庭、遠くは稜線。稜線に木のシルエット
+// ============================================================
+function hash(ix, iz) { let h = (ix * 374761393 + iz * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vn(x, z) { const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz, ux = fx * fx * (3 - 2 * fx), uz = fz * fz * (3 - 2 * fz);
+  const a = hash(ix, iz), b = hash(ix + 1, iz), c = hash(ix, iz + 1), d = hash(ix + 1, iz + 1); return a + (b - a) * ux + (c - a) * uz + (a - b - c + d) * ux * uz; }
+const fbm = (x, z) => vn(x, z) * .5 + vn(x * 2.1, z * 2.1) * .3 + vn(x * 4.3, z * 4.3) * .2;
+// 月の出の方角（東京）に松の丘を置く：月が「山の端」から昇る構図にする
+const RISE_AZ = (() => { const o = new Astro.Observer(35.6812, 139.7671, 40), r = Astro.SearchRiseSet(Astro.Body.Moon, o, +1, new Date(Date.UTC(2026, 8, 24, 15, 0)), 1.2);
+  const e = Astro.Equator(Astro.Body.Moon, r.date, o, true, true); return Astro.Horizon(r.date, o, e.ra, e.dec, "normal").azimuth; })();
+const HILL = { x: Math.sin(RISE_AZ * DEG) * 420, z: -Math.cos(RISE_AZ * DEG) * 420 };
+const hillH = (x, z) => { const d = Math.hypot(x - HILL.x, z - HILL.z); return 44 * Math.exp(-(d * d) / (2 * 150 * 150)); };
+const groundH = (x, z) => hillH(x, z) + baseH(x, z);
+const baseH = (x, z) => { const r = Math.hypot(x, z); return smooth(260, 2000, r) * (28 + fbm(x * .0009, z * .0009) * 90) + smooth(2600, 7000, r) * fbm(x * .0003 + 7, z * .0003) * 260 - 0.02; };
+{
+  const g = new THREE.PlaneGeometry(16000, 16000, 320, 320).rotateX(-Math.PI / 2), p = g.attributes.position, col = [];
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), h = groundH(x, z); p.setY(i, h); const k = smooth(200, 1600, Math.hypot(x, z)); col.push(lerp(.07, .035, k), lerp(.075, .045, k), lerp(.045, .04, k)); }
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })));
+  const tm = null, d = new THREE.Object3D(); let n = 0, s = 3; const N = 1600, treeSpots = [];
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  while (n < N) { const r = 500 + rnd() * 3200, a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r; if (rnd() > .35 + smooth(700, 2000, r) * .6) continue;
+    { const aw = ((Math.atan2(x, -z) / DEG + 360) % 360), dAz = Math.abs(((aw - RISE_AZ + 540) % 360) - 180); if (dAz < 16 && r < 900) continue; }
+    const sz = 7 + rnd() * 9; treeSpots.push([x, groundH(x, z) - 1.2, z, sz]); n++; }
+  // 丘の上の松：黒松の枝ぶりをCanvasで描いた透過テクスチャを十字に組む
+  const pineTex = (() => { const W = 256, H = 256, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d"); let q = 17;
+    const r2 = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+    const draw = (seed) => { g.clearRect(0, 0, W, H); g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineCap = "round";
+      let x = W / 2 + (r2() - .5) * 20, y = H; g.lineWidth = 9; g.beginPath(); g.moveTo(x, y);
+      const pts = []; for (let i = 0; i < 5; i++) { x += (r2() - .5) * 40; y -= H * .16; g.lineTo(x, y); pts.push([x, y]); } g.stroke();
+      for (const [px, py] of pts.slice(1)) for (const sd of [-1, 1]) { if (r2() < .25) continue; const len = 30 + r2() * 60, ex = px + sd * len, ey = py - 8 + r2() * 14;
+        g.lineWidth = 4; g.beginPath(); g.moveTo(px, py); g.quadraticCurveTo((px + ex) / 2, py - 10, ex, ey); g.stroke();
+        for (let k = 0; k < 26; k++) { const t = .35 + r2() * .75, cx = px + (ex - px) * t, cy = py + (ey - py) * t - 6 - r2() * 10; g.beginPath(); g.ellipse(cx, cy, 10 + r2() * 12, 4 + r2() * 5, (r2() - .5) * .4, 0, 7); g.fill(); } }
+      for (let k = 0; k < 40; k++) { const [px, py] = pts[pts.length - 1]; g.beginPath(); g.ellipse(px + (r2() - .5) * 60, py - 4 + (r2() - .5) * 16, 12, 5, 0, 0, 7); g.fill(); } };
+    draw(); const t = new THREE.CanvasTexture(c); return t; })();
+  const pineMat = new THREE.MeshBasicMaterial({ color: 0x0a0d0c, alphaMap: pineTex, alphaTest: .5, side: THREE.DoubleSide });
+  const pgA = new THREE.PlaneGeometry(1, 1).translate(0, .5, 0), pgB = pgA.clone().rotateY(Math.PI / 2), pg = new THREE.BufferGeometry();
+  for (const k of ["position", "normal", "uv"]) pg.setAttribute(k, new THREE.Float32BufferAttribute([...pgA.attributes[k].array, ...pgB.attributes[k].array], pgA.attributes[k].itemSize));
+  { const ia = [...pgA.index.array]; pg.setIndex([...ia, ...ia.map((i) => i + 4)]); }
+  const trees = new THREE.InstancedMesh(pg, pineMat, treeSpots.length);
+  treeSpots.forEach(([x, y, z, sz], i) => { d.position.set(x, y, z); d.rotation.set(0, rnd() * 6.3, 0); d.scale.set(sz * (.8 + rnd() * .6), sz * (1 + rnd() * .5), sz); d.updateMatrix(); trees.setMatrixAt(i, d.matrix); });
+  scene.add(trees);
+  const PN = 190, pines = new THREE.InstancedMesh(pg, pineMat, PN); let k = 0;
+  while (k < PN) { const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 175, x = HILL.x + Math.cos(a) * r, z = HILL.z + Math.sin(a) * r; if (hillH(x, z) < 12) continue;
+    const sz = 9 + rnd() * 7; d.position.set(x, groundH(x, z) - 1.5, z); d.rotation.set(0, rnd() * 6.3, 0); d.scale.set(sz * (1 + rnd() * .5), sz, sz); d.updateMatrix(); pines.setMatrixAt(k++, d.matrix); }
+  scene.add(pines);
+}
+
+// ============================================================
+// 縁側：南東（方位135°）を向いた縁側に、月見団子とススキ
+// ============================================================
+const FACE_AZ = 135;
+const veranda = new THREE.Group();
+veranda.rotation.y = Math.atan2(Math.sin(FACE_AZ * DEG), -Math.cos(FACE_AZ * DEG));
+scene.add(veranda);
+const wood = new THREE.MeshStandardMaterial({ color: 0x6a4c34, roughness: .7 }), woodDark = new THREE.MeshStandardMaterial({ color: 0x1e1610, roughness: .9 });
+const vbox = (w, h, d, x, y, z, m = wood) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); veranda.add(o); return o; };
+for (let i = -12; i <= 12; i++) vbox(.2, .05, 3.6, i * .21, .45, -.4);
+vbox(5.4, .012, 1.9, 0, .48, -1.6, new THREE.MeshStandardMaterial({ color: 0x6b6a4a, roughness: .95 }));
+vbox(5.4, .12, .12, 0, .4, 1.42, woodDark);
+vbox(.13, 2.6, .13, -2.55, 1.3, 1.35, woodDark); vbox(.13, 2.6, .13, 2.55, 1.3, 1.35, woodDark);
+vbox(5.6, .14, .14, 0, 2.62, 1.35, woodDark);
+vbox(.13, 2.6, .13, -2.55, 1.3, -2.4, woodDark); vbox(.13, 2.6, .13, 2.55, 1.3, -2.4, woodDark);
+vbox(5.6, .14, .14, 0, 2.62, -2.4, woodDark);
+// 三方（台）と月見団子（9＋4＋2＝15個）
+const sanbo = new THREE.Group(); sanbo.position.set(.5, .475, .15); veranda.add(sanbo);
+const hinoki = new THREE.MeshStandardMaterial({ color: 0xcaa878, roughness: .7 });
+{ const b = new THREE.Mesh(new THREE.BoxGeometry(.26, .12, .26), hinoki); b.position.y = .06; sanbo.add(b);
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(.32, .025, .32), hinoki); tray.position.y = .13; sanbo.add(tray);
+  const paper = new THREE.Mesh(new THREE.PlaneGeometry(.3, .3).rotateX(-Math.PI / 2).rotateY(Math.PI / 4), new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: .9 })); paper.position.y = .144; sanbo.add(paper);
+  const dm = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: .55 }), dg = new THREE.SphereGeometry(.027, 20, 14);
+  const put = (x, y, z) => { const o = new THREE.Mesh(dg, dm); o.position.set(x, .17 + y, z); sanbo.add(o); };
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) put(i * .054, 0, j * .054);
+  for (const i of [-.5, .5]) for (const j of [-.5, .5]) put(i * .054, .044, j * .054);
+  put(-.027, .088, 0); put(.027, .088, 0); }
+
+// ススキの穂（Canvasで描いた透過テクスチャを十字に組んだ板）
+const susukiTex = (() => {
+  const W = 128, H = 512, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+  let s = 5; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  g.strokeStyle = "rgba(120,110,80,1)"; g.lineWidth = 2.2; g.beginPath(); g.moveTo(64, H); g.quadraticCurveTo(62, H * .5, 70, H * .22); g.stroke();
+  for (const sd of [-1, 1]) { g.strokeStyle = "rgba(95,100,62,.95)"; g.lineWidth = 3; g.beginPath(); g.moveTo(64, H); g.quadraticCurveTo(64 + sd * 30, H * .62, 64 + sd * 58, H * .5); g.stroke(); }
+  for (let i = 0; i < 260; i++) { const t = rnd(), y0 = H * (.22 + t * .28), x0 = 66 + t * 4, len = 30 + rnd() * 70, a = -.25 + rnd() * .5 + (rnd() < .5 ? -1 : 1) * (.25 + rnd() * .6);
+    const l = 200 + rnd() * 55; g.strokeStyle = `rgba(${l},${l - 12},${l - 40},${.55 + rnd() * .4})`; g.lineWidth = .8 + rnd() * 1.2;
+    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + Math.sin(a) * len * .5, y0 + len * .25, x0 + Math.sin(a) * len, y0 + len * .75); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const windU = { value: 0 }, cutU = { value: 0 };
+const susukiMat = new THREE.MeshStandardMaterial({ map: susukiTex, alphaTest: .35, side: THREE.DoubleSide, roughness: .9 });
+susukiMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uWind = windU; sh.uniforms.uCut = cutU;
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uWind, uCut;").replace("#include <begin_vertex>", `#include <begin_vertex>
+    vec3 ip = vec3(0.);
+    #ifdef USE_INSTANCING
+    ip = instanceMatrix[3].xyz;
+    #endif
+    float k = smoothstep(.2, 1., uv.y); float ph = ip.x*.35 + ip.z*.27;
+    transformed.x += (sin(uWind*1.3 + ph) * .1 + sin(uWind*3.1 + ph*2.) * .03) * k;
+    transformed.z += cos(uWind*1.1 + ph) * .05 * k;
+    vec3 wpI = (modelMatrix * vec4(ip, 1.)).xyz; if (length(wpI - cameraPosition) < uCut) transformed *= 0.;`);
+};
+const susukiGeo = (() => { const a = new THREE.PlaneGeometry(.55, 1.7).translate(0, .85, 0), b = a.clone().rotateY(Math.PI / 2); const g = new THREE.BufferGeometry();
+  for (const k of ["position", "normal", "uv"]) g.setAttribute(k, new THREE.Float32BufferAttribute([...a.attributes[k].array, ...b.attributes[k].array], a.attributes[k].itemSize));
+  const ia = [...a.index.array]; g.setIndex([...ia, ...ia.map((i) => i + a.attributes.position.count)]); return g; })();
+{
+  const N = 3400, m = new THREE.InstancedMesh(susukiGeo, susukiMat, N), d = new THREE.Object3D(); let s = 9, n = 0;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  while (n < N) { const dist = 3.2 + Math.pow(rnd(), .8) * 70, ang = (rnd() * 2 - 1) * 1.25, lx = Math.sin(ang) * dist, lz = Math.cos(ang) * dist;
+    if (rnd() > .25 + .75 * smooth(0, 1, (Math.sin(lx * .09) + Math.cos(lz * .07) + 2) / 4)) continue;
+    const sc = .75 + rnd() * .6; d.position.set(lx, 0, lz + 1.6); d.rotation.set(0, rnd() * 6.3, (rnd() - .5) * .15); d.scale.set(sc, sc * (.8 + rnd() * .5), sc); d.updateMatrix(); m.setMatrixAt(n++, d.matrix); }
+  veranda.add(m);
+  // 花瓶に生けたススキ
+  const vase = new THREE.Mesh(new THREE.CylinderGeometry(.06, .075, .24, 20), new THREE.MeshStandardMaterial({ color: 0x2b3440, roughness: .35, metalness: .1 }));
+  vase.position.set(-.55, .595, .25); veranda.add(vase);
+  const vs = new THREE.InstancedMesh(susukiGeo, susukiMat, 5);
+  for (let i = 0; i < 5; i++) { d.position.set(-.55 + (i - 2) * .012, .62, .25); d.rotation.set((i - 2) * .12, i * 1.3, (i - 2) * .18); d.scale.setScalar(.36 + i * .02); d.updateMatrix(); vs.setMatrixAt(i, d.matrix); }
+  veranda.add(vs);
+}
+
+// 行灯：縁側を暖かく照らす灯り
+{ const andon = new THREE.Group(); andon.position.set(-1.35, .48, -.55); veranda.add(andon);
+  const paper = new THREE.Mesh(new THREE.BoxGeometry(.24, .38, .24), new THREE.MeshStandardMaterial({ color: 0xf6e6c4, emissive: 0xffb866, emissiveIntensity: .45, roughness: .9 }));
+  paper.position.y = .27; andon.add(paper);
+  for (const [x, z] of [[-.13, -.13], [.13, -.13], [-.13, .13], [.13, .13]]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(.025, .5, .025), woodDark); leg.position.set(x, .25, z); andon.add(leg); }
+  const lamp = new THREE.PointLight(0xffb86a, 7, 4.5, 1.8); lamp.position.set(0, .3, 0); andon.add(lamp); }
+// 光：月光・太陽光・空の光
+const moonLight = new THREE.DirectionalLight(0xb8c8ff, 0.3); scene.add(moonLight, moonLight.target);
+const sunLight = new THREE.DirectionalLight(0xffe2c0, 0); scene.add(sunLight, sunLight.target);
+const hemi = new THREE.HemisphereLight(0x5a74a8, 0x1a1a14, 0.2); scene.add(hemi);
+
+// カメラは縁側に座った目の高さ
+const eye = new THREE.Vector3(0, 1.18, -1.7);
+veranda.updateMatrixWorld(true);
+camera.position.copy(eye.clone().applyMatrix4(veranda.matrixWorld));
+
+// ============================================================
+// 望遠鏡の窓：別の小さなレンダラーで月だけを拡大表示
+// ============================================================
+const scopeCanvas = document.getElementById("scopeCanvas");
+const scopeR = new THREE.WebGLRenderer({ canvas: scopeCanvas, antialias: true });
+scopeR.setPixelRatio(1); scopeR.setSize(480, 480, false); scopeR.toneMapping = THREE.ACESFilmicToneMapping; scopeR.toneMappingExposure = 1.0;
+const scopeScene = new THREE.Scene(); const scopeMoon = new THREE.Mesh(moonGeo, moonMat); scopeMoon.matrixAutoUpdate = false; scopeScene.add(scopeMoon);
+const scopeCam = new THREE.PerspectiveCamera(0.7, 1, 1, 20000);
+const scopeLabels = document.getElementById("scopeLabels");
+for (const [name] of MARIA) { const sp = document.createElement("span"); sp.textContent = name; scopeLabels.appendChild(sp); }
+
+// ============================================================
+// 時刻と場所から、月・太陽・星・惑星を計算して配置する
+// ============================================================
+const astro = { moonDir: new THREE.Vector3(), sunDir: new THREE.Vector3(), frac: 1, alt: 0, az: 0, distKm: 380000, P: new THREE.Vector3(), N: new THREE.Vector3(), E: new THREE.Vector3(), radius: 20 };
+function vecEQJ(v) { return new Astro.Vector(v.x, v.y, v.z, v.t); }
+function updateAstro() {
+  const [, lat, lon] = state.obsCity || CITIES[state.city];
+  const obs = new Astro.Observer(lat, lon, 40), date = new Date(state.t), time = Astro.MakeTime(date);
+  const R = Astro.Rotation_EQJ_HOR(date, obs), toW = (v) => horToWorld(Astro.RotateVector(R, v));
+  // 月の方向（大気差込み）と距離
+  const eqd = Astro.Equator(Astro.Body.Moon, date, obs, true, true), hz = Astro.Horizon(date, obs, eqd.ra, eqd.dec, "normal");
+  astro.az = hz.azimuth; astro.alt = hz.altitude; astro.moonDir.copy(azAltToWorld(hz.azimuth, hz.altitude));
+  astro.distKm = eqd.dist * AU_KM; astro.frac = Astro.Illumination(Astro.Body.Moon, date).phase_fraction;
+  // 太陽の方向と、月から見た太陽（照らす向き）
+  const eqs = Astro.Equator(Astro.Body.Sun, date, obs, true, true), hs = Astro.Horizon(date, obs, eqs.ra, eqs.dec, "normal");
+  astro.sunDir.copy(azAltToWorld(hs.azimuth, hs.altitude));
+  const ov = Astro.ObserverVector(date, obs, false), gm = Astro.GeoVector(Astro.Body.Moon, date, true), gs = Astro.GeoVector(Astro.Body.Sun, date, true);
+  const mT = new Astro.Vector(gm.x - ov.x, gm.y - ov.y, gm.z - ov.z, time), sT = new Astro.Vector(gs.x - ov.x, gs.y - ov.y, gs.z - ov.z, time);
+  const light = toW(new Astro.Vector(sT.x - mT.x, sT.y - mT.y, sT.z - mT.z, time)).normalize();
+  moonMat.uniforms.sunDir.value.copy(light);
+  // 月の自転軸と本初子午線から、模様の向きを決める
+  const ax = Astro.RotationAxis(Astro.Body.Moon, date), pole = new THREE.Vector3(ax.north.x, ax.north.y, ax.north.z);
+  const Q = new THREE.Vector3(0, 0, 1).cross(pole).normalize(), PQ = pole.clone().cross(Q), W = ax.spin * DEG;
+  const Pm = Q.clone().multiplyScalar(Math.cos(W)).add(PQ.multiplyScalar(Math.sin(W)));
+  astro.N.copy(toW(new Astro.Vector(pole.x, pole.y, pole.z, time))).normalize();
+  astro.P.copy(toW(new Astro.Vector(Pm.x, Pm.y, Pm.z, time))).normalize();
+  astro.E.copy(astro.N).cross(astro.P).normalize();
+  // 星と惑星
+  const ex = toW(new Astro.Vector(1, 0, 0, time)), ey = toW(new Astro.Vector(0, 1, 0, time)), ez = toW(new Astro.Vector(0, 0, 1, time));
+  starGroup.matrix.makeBasis(ex, ey, ez); starGroup.matrix.setPosition(camera.position); starGroup.matrixWorldNeedsUpdate = true;
+  const pp = planetPts.geometry.attributes.position; astro.planets = [];
+  PLANETS.forEach(([jp, body], i) => { const e = Astro.Equator(Astro.Body[body], date, obs, true, true), h = Astro.Horizon(date, obs, e.ra, e.dec, "normal");
+    const v = azAltToWorld(h.azimuth, h.altitude).multiplyScalar(8400).add(camera.position); pp.setXYZ(i, v.x, v.y, v.z); astro.planets.push({ jp, alt: h.altitude, pos: v }); });
+  pp.needsUpdate = true;
+  state.obs = obs;
+}
+function placeMoon() {
+  const r = MOON_D * MOON_R_KM / astro.distKm, c = astro.moonDir.clone().multiplyScalar(MOON_D).add(camera.position);
+  astro.radius = r; astro.center = c;
+  const zAxis = astro.P.clone().cross(astro.N);
+  const m = new THREE.Matrix4().makeBasis(astro.P.clone().multiplyScalar(r), astro.N.clone().multiplyScalar(r), zAxis.multiplyScalar(r)).setPosition(c);
+  moon.matrix.copy(m); moon.matrixWorldNeedsUpdate = true; scopeMoon.matrix.copy(m); scopeMoon.matrixWorldNeedsUpdate = true;
+}
+
+// ============================================================
+// 見え方の調整：太陽の高さで露出・光・星の見え方を変える
+// ============================================================
+function updateLook() {
+  const s = astro.sunDir.y, dayK = smooth(-.05, .25, s), twK = smooth(-.3, -.05, s), moonUp = smooth(-.02, .06, astro.moonDir.y);
+  skyU.sunDir.value.copy(astro.sunDir); skyU.moonDir.value.copy(astro.moonDir); skyU.moonGlow.value = astro.frac * moonUp;
+  starGroup.userData.mat.uniforms.vis.value = (1 - twK) * 0.95;
+  planetPts.material.opacity = (1 - smooth(-.2, -.06, s));
+  moonLight.position.copy(astro.moonDir).multiplyScalar(100); moonLight.intensity = 1.25 * astro.frac * moonUp * (1 - dayK);
+  sunLight.position.copy(astro.sunDir).multiplyScalar(100); sunLight.intensity = 2.6 * smooth(-.02, .12, s);
+  hemi.intensity = lerp(lerp(0.08, 0.3, twK), 1.1, dayK);
+  hemi.color.setRGB(lerp(.35, .62, dayK), lerp(.45, .72, dayK), lerp(.75, .9, dayK));
+  renderer.toneMappingExposure = lerp(lerp(2.1, 1.25, twK), 0.8, dayK) * (state.lens >= 200 ? lerp(0.95, 0.62, smooth(-.12, .05, s)) : 1);
+  moonMat.userData.wide = lerp(2.6, 1.1, dayK);
+  bloom.strength = lerp(0.95, 0.35, dayK);
+  // 低い月ほど大気を長く通るので赤く暗くなる（大気減光）
+  const alt = Math.max(astro.alt, 0.3), airmass = 1 / (Math.sin((alt + 244 / (165 + 47 * Math.pow(alt, 1.1))) * DEG));
+  const ext = (k) => Math.exp(-k * (airmass - 1));
+  moonMat.uniforms.tint.value.setRGB(ext(0.12), ext(0.2), ext(0.34));
+  skyU.moonGlow.value *= 0.4 + 0.6 * ext(0.2);
+}
+
+// ============================================================
+// UI：スライダー・ボタン・場所・解説の図
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const slider = $("slider"), when = $("when");
+slider.max = String((T_END - T_START) / 60000);
+const citySel = $("city");
+CITIES.forEach(([n], i) => { const o = document.createElement("option"); o.value = i; o.textContent = n; citySel.appendChild(o); });
+{ const o = document.createElement("option"); o.value = "geo"; o.textContent = "現在地"; citySel.appendChild(o); }
+citySel.value = String(state.city);
+citySel.addEventListener("change", () => {
+  if (citySel.value === "geo") {
+    if (!navigator.geolocation) { citySel.value = String(state.city); return; }
+    navigator.geolocation.getCurrentPosition((p) => { state.obsCity = ["現在地", p.coords.latitude, p.coords.longitude]; state.dirty = true; updateRise(); },
+      () => { citySel.value = String(state.city); }, { timeout: 8000 });
+  } else { state.city = +citySel.value; state.obsCity = null; state.dirty = true; updateRise(); }
+});
+const ticks = $("ticks");
+for (let t = T_START + 8 * HOUR; t <= T_END; t += 12 * HOUR) {
+  const sp = document.createElement("span"); sp.style.left = `${((t - T_START) / (T_END - T_START)) * 100}%`;
+  const d = new Date(t + JST); sp.textContent = `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${d.getUTCHours()}時`; ticks.appendChild(sp);
+}
+for (const [t, label] of [[T_JUGOYA, "十五夜"], [FULL_MOON.getTime(), "満月"]]) { const sp = document.createElement("span"); sp.className = "hl"; sp.style.left = `${((t - T_START) / (T_END - T_START)) * 100}%`; sp.style.top = "-30px"; sp.textContent = label; ticks.appendChild(sp); }
+const setT = (t, keepLive = false) => { if (!keepLive) state.live = false;
+   state.t = clamp(t, T_START, T_END); slider.value = String(Math.round((state.t - T_START) / 60000)); state.dirty = true; };
+slider.addEventListener("input", () => { state.live = false; state.t = T_START + +slider.value * 60000; state.dirty = true; });
+$("play").addEventListener("click", () => { state.playing = !state.playing; $("play").textContent = state.playing ? "❚❚" : "▶"; });
+const LENSES = [14, 24, 50, 200, 600];
+const lensBox = $("lens");
+for (const f of LENSES) { const b = document.createElement("button"); b.type = "button"; b.textContent = `${f}mm`; b.dataset.f = f; b.addEventListener("click", () => setLens(f)); lensBox.appendChild(b); }
+function setLens(f) { state.lens = f; state.follow = true; state.dirty = true; for (const b of lensBox.children) b.classList.toggle("on", +b.dataset.f === f); }
+setLens(state.lens);
+let riseTime = null;
+// 月が丘の稜線（高度約7°）をちょうど越える時刻を探す
+function riseClear() { const [, lat, lon] = state.obsCity || CITIES[state.city], o = new Astro.Observer(lat, lon, 40);
+  for (let t = riseTime; t < riseTime + 3 * HOUR; t += 60000) { const e = Astro.Equator(Astro.Body.Moon, new Date(t), o, true, true), h = Astro.Horizon(new Date(t), o, e.ra, e.dec, "normal"); if (h.altitude > 7.9) return t; }
+  return riseTime + 40 * 60000; }
+function updateRise() {
+  const [, lat, lon] = state.obsCity || CITIES[state.city], obs = new Astro.Observer(lat, lon, 40);
+  const r = Astro.SearchRiseSet(Astro.Body.Moon, obs, +1, new Date(Date.UTC(2026, 8, 24, 15, 0)), 1.2);
+  riseTime = r ? r.date.getTime() : null; $("riseInfo").textContent = r ? `9月25日の月の出 ${fmtJST(riseTime, false)}` : "月の出なし";
+}
+updateRise();
+document.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
+  const q = b.dataset.q;
+  if (q === "rise" && riseTime) { setT(riseClear()); setLens(600); }
+  if (q === "jugoya") { setT(T_JUGOYA); setLens(14); }
+  if (q === "full") { setT(FULL_MOON.getTime()); setLens(50); }
+  if (q === "now") { const n = Date.now(); if (n > T_START && n < T_END) { setT(n); state.live = true; } else setT(T_JUGOYA); }
+}));
+$("lblToggle").addEventListener("change", (e) => { state.labels = e.target.checked; });
+$("sound").addEventListener("click", () => { if (!AUD.ctx) AUD.start(); else if (AUD.ctx.state === "running") AUD.ctx.suspend(); else AUD.ctx.resume();
+  setTimeout(() => { const on = AUD.ctx && AUD.ctx.state === "running"; $("sound").textContent = on ? "音を消す" : "音を出す"; $("sound").classList.toggle("on", on); }, 60); });
+$("cloudBtn").addEventListener("click", () => { const on = cloudU.amt.value > 0; cloudU.amt.value = on ? 0 : .24; $("cloudBtn").textContent = on ? "雲なし" : "雲あり"; });
+$("panelToggle").addEventListener("click", () => $("panel").classList.toggle("open"));
+$("hidePanel").addEventListener("click", () => { $("panel").hidden = true; $("showPanel").hidden = false; });
+$("showPanel").addEventListener("click", () => { $("panel").hidden = false; $("showPanel").hidden = true; });
+// 望遠鏡の月を横にドラッグ → 時間が進む（満月にする）
+{ const sw = $("scopeWrap"); let sd = null;
+  sw.addEventListener("pointerdown", (e) => { sd = { x: e.clientX, t: state.t }; sw.setPointerCapture(e.pointerId); e.stopPropagation(); });
+  sw.addEventListener("pointermove", (e) => { if (!sd) return; setT(sd.t + (e.clientX - sd.x) * 8 * 60000); });
+  sw.addEventListener("pointerup", () => { sd = null; }); }
+// この月を撮る：日付・場所・輝きの入った名月写真を保存
+$("shot").addEventListener("click", () => {
+  composer.render(); const src = renderer.domElement, c = document.createElement("canvas"); c.width = src.width; c.height = src.height; const g = c.getContext("2d");
+  g.drawImage(src, 0, 0); const s = c.height / 900, d = new Date(state.t + JST), city = (state.obsCity || CITIES[state.city])[0];
+  const grad = g.createLinearGradient(0, c.height * .72, 0, c.height); grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,.55)"); g.fillStyle = grad; g.fillRect(0, c.height * .72, c.width, c.height * .28);
+  g.fillStyle = "#f6efe0"; g.font = `800 ${40 * s}px 'Shippori Mincho B1',serif`; g.fillText("中秋の名月", 40 * s, c.height - 92 * s);
+  g.font = `600 ${22 * s}px 'Shippori Mincho B1',serif`; g.fillStyle = "#e8c67e";
+  g.fillText(`${d.getUTCFullYear()}.${d.getUTCMonth() + 1}.${d.getUTCDate()}  ${fmtJST(state.t, false)}  ${city}  輝き ${(astro.frac * 100).toFixed(1)}%`, 40 * s, c.height - 50 * s);
+  g.font = `500 ${15 * s}px 'Zen Kaku Gothic New',sans-serif`; g.fillStyle = "rgba(246,239,224,.7)"; g.textAlign = "right"; g.fillText(`${state.lens}mm ・ aiimpl.github.io/meigetsu`, c.width - 36 * s, c.height - 50 * s);
+  g.fillStyle = "rgba(246,239,224,.55)"; g.font = `500 ${13 * s}px 'Zen Kaku Gothic New',sans-serif`; g.fillText("Claude Opus 5.5 で作った名月シミュレーター（画像・3Dモデルなし）", c.width - 36 * s, c.height - 28 * s);
+  const a = document.createElement("a"); a.download = `meigetsu-${d.getUTCMonth() + 1}${String(d.getUTCDate()).padStart(2, "0")}-${fmtJST(state.t, false).replace(":", "")}.png`; a.href = c.toDataURL("image/png"); a.click();
+});
+
+// 見回し（ドラッグ）
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, yaw: state.yaw, pitch: state.pitch }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => { if (!drag) return; const k = camera.fov * DEG / innerHeight;
+  if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) state.follow = false;
+  state.yaw = drag.yaw - (e.clientX - drag.x) * k; state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * k, -0.3, 1.45); });
+canvas.addEventListener("pointerup", () => { drag = null; });
+canvas.addEventListener("dblclick", () => { state.follow = true; });
+addEventListener("keydown", (e) => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); $("play").click(); } });
+
+// 解説の図：暦（新月から満月まで）
+function drawMoonIcon(g, x, y, r, phaseDeg, lit = "#efe6cf", dark = "#1d2233") {
+  g.fillStyle = dark; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  const p = ((phaseDeg % 360) + 360) % 360, k = Math.cos(p * DEG);
+  g.fillStyle = lit; g.beginPath();
+  if (p < 180) { g.arc(x, y, r, -Math.PI / 2, Math.PI / 2); g.ellipse(x, y, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, k < 0); }
+  else { g.arc(x, y, r, Math.PI / 2, -Math.PI / 2); g.ellipse(x, y, Math.abs(k) * r, r, 0, -Math.PI / 2, Math.PI / 2, k < 0); }
+  g.fill();
+}
+function drawCalendar() {
+  const c = $("cal"), g = c.getContext("2d"), W = c.width, H = c.height; g.clearRect(0, 0, W, H);
+  const days = 18, cw = W / days;
+  for (let i = 0; i < days; i++) {
+    const day = Date.UTC(2026, 8, 11 + i, 11, 0), x = cw * (i + .5), ph = Astro.MoonPhase(new Date(day));
+    const isJ = i === 14, isF = i === 16;
+    if (isJ || isF) { g.fillStyle = isJ ? "rgba(232,198,126,.16)" : "rgba(208,84,58,.18)"; g.fillRect(cw * i + 2, 6, cw - 4, H - 12); }
+    drawMoonIcon(g, x, 62, cw * .32, ph);
+    g.fillStyle = "#a8afc0"; g.font = "500 17px 'Zen Kaku Gothic New',sans-serif"; g.textAlign = "center";
+    g.fillText(`${11 + i}`, x, 118);
+    g.fillStyle = isJ ? "#e8c67e" : "#6f778c"; g.font = `${isJ ? 700 : 500} 15px 'Zen Kaku Gothic New',sans-serif`; g.fillText(`${i + 1}日`, x, 144);
+    if (isJ) { g.fillStyle = "#e8c67e"; g.font = "700 16px 'Shippori Mincho B1',serif"; g.fillText("十五夜", x, 172); }
+    if (isF) { g.fillStyle = "#ff9a80"; g.font = "700 16px 'Shippori Mincho B1',serif"; g.fillText("満月", x, 172); }
+  }
+  g.fillStyle = "#6f778c"; g.font = "500 13px 'Zen Kaku Gothic New',sans-serif"; g.textAlign = "left";
+  g.fillText("9月", 4, 118); g.fillText("旧暦", 4, 144);
+  const tx = cw * ((state.t - Date.UTC(2026, 8, 10, 15, 0)) / DAY);
+  if (tx > 0 && tx < W) { g.strokeStyle = "#e8c67e"; g.lineWidth = 2; g.beginPath(); g.moveTo(tx, 22); g.lineTo(tx, 96); g.stroke(); }
+}
+// 解説の図：北から見た月の通り道
+function drawOrbit() {
+  const c = $("orbit"), g = c.getContext("2d"), W = c.width, H = c.height; g.clearRect(0, 0, W, H);
+  const cx = W * .56, cy = H * .5, a = 190, e = .28, b = a * Math.sqrt(1 - e * e);
+  const apPh = Astro.MoonPhase(APOGEE.time.date) * DEG;
+  const posAt = (ph) => { const rel = ph - apPh, r = a * (1 - e * e) / (1 - e * Math.cos(rel)); return [cx - Math.cos(ph) * r * 0.92, cy - Math.sin(ph) * r * 0.92]; };
+  g.fillStyle = "rgba(255,210,120,.12)"; g.fillRect(0, 0, 70, H);
+  g.fillStyle = "#e8c67e"; g.font = "700 18px 'Shippori Mincho B1',serif"; g.textAlign = "left"; g.fillText("太陽の光", 10, 30);
+  for (let y = 60; y < H - 20; y += 46) { g.strokeStyle = "rgba(232,198,126,.35)"; g.lineWidth = 2; g.beginPath(); g.moveTo(80, y); g.lineTo(130, y); g.stroke(); g.beginPath(); g.moveTo(130, y); g.lineTo(122, y - 5); g.lineTo(122, y + 5); g.closePath(); g.fillStyle = "rgba(232,198,126,.35)"; g.fill(); }
+  g.strokeStyle = "rgba(242,236,223,.22)"; g.lineWidth = 1.5; g.beginPath();
+  for (let i = 0; i <= 180; i++) { const [x, y] = posAt(i / 180 * Math.PI * 2); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); g.stroke();
+  const phNow = Astro.MoonPhase(new Date(state.t)) * DEG;
+  g.strokeStyle = "#e8c67e"; g.lineWidth = 4; g.beginPath();
+  for (let i = 0; i <= 90; i++) { const ph = i / 90 * Math.min(phNow, Math.PI); const [x, y] = posAt(ph); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
+  const earth = () => { g.fillStyle = "#3d6fb0"; g.beginPath(); g.arc(cx, cy, 16, 0, 7); g.fill(); g.fillStyle = "#a8afc0"; g.font = "500 14px 'Zen Kaku Gothic New',sans-serif"; g.textAlign = "center"; g.fillText("地球", cx, cy + 36); };
+  earth();
+  const mark = (ph, label, sub, color, dy = -18) => { const [x, y] = posAt(ph); g.fillStyle = color; g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill();
+    g.font = "700 15px 'Zen Kaku Gothic New',sans-serif"; g.textAlign = "center"; g.fillText(label, x, y + dy); g.fillStyle = "#a8afc0"; g.font = "500 13px 'Zen Kaku Gothic New',sans-serif"; g.fillText(sub, x, y + dy + (dy < 0 ? -18 : 18)); };
+  mark(0, "新月", "9/11 12:27", "#8c93a6", 26);
+  mark(apPh, "遠地点", "9/19 ゆっくり進む", "#ff9a80");
+  mark(Astro.MoonPhase(new Date(T_JUGOYA)) * DEG, "十五夜", "9/25", "#e8c67e", 26);
+  mark(Math.PI, "満月", "9/27 1:49", "#f2ecdf", -22);
+  const [mx, my] = posAt(phNow); g.shadowColor = "#fff2c8"; g.shadowBlur = 18; drawMoonIcon(g, mx, my, 12, phNow / DEG); g.shadowBlur = 0;
+  g.fillStyle = "#a8afc0"; g.font = "500 14px 'Zen Kaku Gothic New',sans-serif"; g.textAlign = "right";
+  g.fillText("新月→満月  15.56日（平均14.77日）", W - 14, H - 16);
+}
+// 解説：2000〜2050年のずれ
+{
+  const box = $("years");
+  for (let y = 2000; y <= 2050; y++) { const d = meigetsuDiff(y), el = document.createElement("div"); el.textContent = y;
+    el.className = y === 2026 ? "now" : d === 0 ? "d0" : d >= 2 ? "d2" : ""; el.title = d === 0 ? "満月と同じ日" : `${d}日ずれ`; box.appendChild(el); }
+}
+let momentShown = false, lastT = state.t;
+function updateHook() {
+  const frac = astro.frac, remain = Math.max(0, (1 - frac) * 100);
+  $("hookV").innerHTML = state.t >= FULL_MOON.getTime() - 60000 && state.t <= FULL_MOON.getTime() + 20 * 60000 ? `0.0<small>%</small>` : `${remain.toFixed(1)}<small>%</small>`;
+  const crossed = (lastT < FULL_MOON.getTime() && state.t >= FULL_MOON.getTime()) || (lastT > FULL_MOON.getTime() && state.t <= FULL_MOON.getTime());
+  if (crossed && !momentShown) { momentShown = true; $("moment").classList.add("on"); bloomPulse = 1; setTimeout(() => { $("moment").classList.remove("on"); momentShown = false; }, 3200); }
+  lastT = state.t;
+}
+let bloomPulse = 0;
+function updateBanner() {
+  const b = $("banner"), n = Date.now();
+  if (state.live) { b.className = "glass live"; b.innerHTML = `いまの${(state.obsCity || CITIES[state.city])[0]}の空　<b>${fmtJST(n, false)}</b>`; return; }
+  b.className = "glass";
+  if (riseTime && n < riseTime && n > riseTime - 20 * HOUR) { const m = Math.round((riseTime - n) / 60000); b.innerHTML = `今夜の月の出まで <b>${Math.floor(m / 60)}時間${m % 60}分</b>　いまは今夜の月をプレビュー中`; }
+  else b.innerHTML = `${fmtJST(state.t)} の月をシミュレーション中`;
+}
+function updateStats() {
+  const age = (state.t - NEW_MOON.getTime()) / DAY; $("sAge").textContent = age.toFixed(1);
+  $("sFrac").innerHTML = `${(astro.frac * 100).toFixed(1)}<small>%</small>`;
+  const dt = FULL_MOON.getTime() - state.t, m = Math.round(Math.abs(dt) / 60000);
+  $("sToLabel").textContent = dt >= 0 ? "満月まで" : "満月から";
+  $("sTo").innerHTML = `${Math.floor(m / 60)}<small>時間</small>${m % 60}<small>分</small>`;
+  $("sDist").innerHTML = `${Math.round(astro.distKm).toLocaleString()}<small>km</small>`;
+  when.textContent = fmtJST(state.t);
+  updateHook(); updateBanner();
+}
+
+// ============================================================
+// 音：鈴虫とコオロギ、そよ風（すべてその場で合成）
+// ============================================================
+const AUD = { ctx: null, on: false,
+  start() { const C = window.AudioContext || window.webkitAudioContext; if (!C) return; this.ctx = new C(); const c = this.ctx;
+    this.m = c.createGain(); this.m.gain.value = .7; this.m.connect(c.destination);
+    const len = c.sampleRate * 2, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(); src.buffer = b; src.loop = true; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 380;
+    this.wind = c.createGain(); this.wind.gain.value = .05; src.connect(f); f.connect(this.wind); this.wind.connect(this.m); src.start();
+    this.insects = []; for (let i = 0; i < 7; i++) this.insects.push({ kind: i < 4 ? "suzu" : "koro", next: c.currentTime + Math.random() * 2, pan: Math.random() * 2 - 1, vol: .02 + Math.random() * .035 });
+    this.on = true; },
+  tick() { if (!this.on) return; const c = this.ctx, t = c.currentTime, night = 1 - smooth(-.1, .05, astro.sunDir.y);
+    this.wind.gain.setTargetAtTime(.035 + .03 * Math.sin(t * .23) ** 2, t, .5);
+    for (const ins of this.insects) { if (t < ins.next) continue; const o = c.createOscillator(), g = c.createGain(), p = c.createStereoPanner ? c.createStereoPanner() : null;
+      const v = ins.vol * (.25 + .75 * night);
+      if (ins.kind === "suzu") { o.frequency.value = 4400 + Math.random() * 300; const dur = .28 + Math.random() * .12; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .03); g.gain.setValueAtTime(v, t + dur - .06); g.gain.linearRampToValueAtTime(0, t + dur);
+        const am = c.createOscillator(), ag = c.createGain(); am.frequency.value = 55; ag.gain.value = .45; am.connect(ag); ag.connect(g.gain); am.start(t); am.stop(t + dur); o.start(t); o.stop(t + dur); ins.next = t + dur + .25 + Math.random() * .5; }
+      else { o.frequency.value = 3600 + Math.random() * 400; const n = 5 + (Math.random() * 6 | 0); g.gain.setValueAtTime(0, t); for (let k = 0; k < n; k++) { const tk = t + k * .045; g.gain.setValueAtTime(v, tk); g.gain.setValueAtTime(0, tk + .025); } o.start(t); o.stop(t + n * .045 + .05); ins.next = t + n * .045 + .6 + Math.random() * 1.6; }
+      o.connect(g); if (p) { p.pan.value = ins.pan; g.connect(p); p.connect(this.m); } else g.connect(this.m); } },
+};
+
+// ============================================================
+// メインループ
+// ============================================================
+const lensFov = (f) => 2 * Math.atan(24 / (2 * f)) / DEG;
+const planetLbl = $("planetLbl");
+let last = performance.now(), statsT = 0;
+setT(state.t);
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h;
+  bloom.resolution.set(w / 2, h / 2); camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+function frame() {
+  requestAnimationFrame(frame);
+  const tnow = performance.now(), dt = Math.min((tnow - last) / 1000, .1); last = tnow; windU.value += dt; cloudU.uT.value += dt; gradePass.uniforms.uT.value = tnow / 1000;
+  clouds.position.copy(camera.position); sky.position.copy(camera.position);
+  if (state.live && !state.playing) { const n = Date.now(); if (Math.abs(n - state.t) > 20000) setT(n, true); }
+  if (state.playing) { setT(state.t + dt * 25 * 60000); if (state.t >= T_END) { state.playing = false; $("play").textContent = "▶"; } }
+  if (state.dirty) { updateAstro(); updateLook(); updateStats(); drawCalendar(); drawOrbit(); state.dirty = false; }
+  // レンズと視線
+  cutU.value = state.lens >= 200 ? 30 : 0;
+  if (bloomPulse > 0) { bloomPulse = Math.max(0, bloomPulse - dt * .4); }
+  bloom.strength += bloomPulse * 0; 
+  const fov = lensFov(state.lens); camera.fov = lerp(camera.fov, fov, Math.min(1, dt * 5)); camera.updateProjectionMatrix();
+  if (state.follow) {
+    const tYaw = -astro.az * DEG, tele = state.lens >= 200, tPitch = tele ? astro.alt * DEG : clamp((astro.alt + 12.5 - fov / 2) * DEG, -0.2, 1.2);
+    let dy = tYaw - state.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    state.yaw += dy * Math.min(1, dt * 4); state.pitch = lerp(state.pitch, tPitch, Math.min(1, dt * 4));
+  }
+  const dir = new THREE.Vector3(Math.sin(-state.yaw) * Math.cos(state.pitch), Math.sin(state.pitch), -Math.cos(-state.yaw) * Math.cos(state.pitch));
+  camera.lookAt(camera.position.clone().add(dir));
+  placeMoon(); AUD.tick();
+  // 惑星のラベル（土星など）
+  let lbl = ""; for (const p of astro.planets || []) { if (p.alt < 2) continue; const v = p.pos.clone().project(camera);
+    if (v.z < 1 && Math.abs(v.x) < .95 && Math.abs(v.y) < .95) { planetLbl.style.left = `${(v.x * .5 + .5) * innerWidth}px`; planetLbl.style.top = `${(-v.y * .5 + .5) * innerHeight}px`; lbl = p.jp; break; } }
+  planetLbl.textContent = astro.sunDir.y < -.08 ? lbl : "";
+  // 本画面
+  moonMat.uniforms.intensity.value = (moonMat.userData.wide ?? 2.6) * (1 + bloomPulse * 1.2);
+  composer.render();
+  // 望遠鏡
+  scopeCam.position.copy(camera.position); scopeCam.up.set(0, 1, 0); scopeCam.lookAt(astro.center);
+  scopeCam.fov = 2 * Math.atan(astro.radius * 1.28 / MOON_D) / DEG; scopeCam.updateProjectionMatrix();
+  const s = astro.sunDir.y; scopeR.setClearColor(new THREE.Color().setRGB(lerp(.004, .2, smooth(-.1, .2, s)), lerp(.008, .35, smooth(-.1, .2, s)), lerp(.02, .62, smooth(-.1, .2, s))));
+  moonMat.uniforms.intensity.value = 0.95; scopeR.render(scopeScene, scopeCam);
+  // 海の名前
+  const spans = scopeLabels.children;
+  for (let i = 0; i < MARIA.length; i++) { const sp = spans[i]; if (!state.labels) { sp.hidden = true; continue; }
+    const [, lat, lon] = MARIA[i], la = lat * DEG, lo = lon * DEG;
+    const nrm = astro.P.clone().multiplyScalar(Math.cos(la) * Math.cos(lo)).add(astro.E.clone().multiplyScalar(Math.cos(la) * Math.sin(lo))).add(astro.N.clone().multiplyScalar(Math.sin(la)));
+    const wp = nrm.clone().multiplyScalar(astro.radius).add(astro.center), vis = nrm.dot(camera.position.clone().sub(wp).normalize());
+    if (vis < .15) { sp.hidden = true; continue; }
+    const v = wp.project(scopeCam); sp.hidden = false; sp.style.left = `${(v.x * .5 + .5) * 100}%`; sp.style.top = `${(-v.y * .5 + .5) * 100}%`; }
+}
+if (location.search.includes("debug")) window.__dbg = { state, astro, camera, setT, setLens };
+frame();
+</script>
+</body>
+</html>
