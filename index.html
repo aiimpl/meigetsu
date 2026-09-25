@@ -9,37 +9,36 @@
 <style>
 :root{
   color-scheme: dark;
-  --ink:#f2ecdf; --dim:#a8afc0; --mute:#6f778c; --gold:#e8c67e; --gold2:#b8954c; --shu:#d0543a;
-  --glass:rgba(9,13,26,.62); --glass2:rgba(9,13,26,.82); --line:rgba(242,236,223,.16);
+  --ink:#f2ecdf; --dim:#a8afc0; --mute:#6f778c; --gold:#e8c67e; --shu:#d0543a;
+  --glass:rgba(9,13,26,.58); --line:rgba(242,236,223,.16);
   --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
   --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;background:#05070f;color:var(--ink);font-family:var(--sans)}
-#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
-#gl:active{cursor:grabbing}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:ew-resize}
 .glass{background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line)}
-button,select{font-family:var(--sans);color:var(--ink)}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button{font-family:var(--sans);color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.shadow{text-shadow:0 2px 16px rgba(0,0,0,.75)}
 
-/* ---- top-left: title and place ---- */
-#top{position:fixed;left:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px;max-width:min(420px,calc(100% - 32px))}
-#top .eyebrow{font-size:11px;letter-spacing:.34em;color:var(--gold)}
-#top h1{font-family:var(--serif);font-weight:800;font-size:clamp(26px,3.4vw,38px);letter-spacing:.14em;margin:0;line-height:1.15;text-shadow:0 2px 14px rgba(0,0,0,.6)}
-#top .when{font-family:var(--serif);font-weight:600;font-size:16px;letter-spacing:.06em;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px rgba(0,0,0,.7)}
-#top .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-#top select{background:var(--glass);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px}
-#top .made{font-size:11px;color:var(--dim);letter-spacing:.06em;text-shadow:0 1px 6px rgba(0,0,0,.8)}
-#top .pill{font-size:12px;color:var(--dim);padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--glass)}
+/* 左上：タイトルと時刻 */
+#top{position:fixed;left:20px;top:calc(18px + env(safe-area-inset-top,0px));pointer-events:none}
+#top .eyebrow{font-size:12px;letter-spacing:.3em;color:var(--gold)}
+#top h1{font-family:var(--serif);font-weight:800;font-size:clamp(28px,3.6vw,42px);letter-spacing:.14em;margin:4px 0 2px}
+#top .when{font-family:var(--serif);font-weight:600;font-size:17px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+#top .made{font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:.04em}
 
-/* ---- right: explainer ---- */
-#panel{position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));width:400px;border-radius:14px;overflow:auto;padding:22px 22px 26px;scrollbar-width:thin}
+/* 右上：解説を開く */
+#why{position:fixed;right:20px;top:calc(18px + env(safe-area-inset-top,0px));font-size:14px;padding:10px 18px;border-radius:999px;cursor:pointer}
+#panel{position:fixed;right:20px;top:calc(70px + env(safe-area-inset-top,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:400px;max-width:calc(100% - 40px);border-radius:16px;overflow:auto;padding:22px 22px 26px;z-index:20;scrollbar-width:thin}
 #panel .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--gold)}
-#panel h2{font-family:var(--serif);font-weight:800;font-size:28px;line-height:1.35;letter-spacing:.04em;margin:8px 0 10px;text-wrap:balance}
-#panel h3{font-family:var(--serif);font-weight:600;font-size:18px;letter-spacing:.06em;margin:26px 0 8px;padding-top:18px;border-top:1px solid var(--line)}
+#panel h2{font-family:var(--serif);font-weight:800;font-size:25px;line-height:1.4;margin:8px 60px 10px 0;text-wrap:balance;word-break:keep-all}
+#panel h3{font-family:var(--serif);font-weight:600;font-size:18px;margin:24px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
 #panel p{font-size:14px;line-height:1.85;color:#d9d6ce;margin:0 0 10px}
-#panel b{color:var(--gold);font-weight:700}
+#panel b{color:var(--gold)}
+#hidePanel{position:absolute;right:14px;top:12px;font-size:12px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--dim)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
 .stat{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .stat .k{font-size:11px;color:var(--dim);letter-spacing:.12em}
@@ -56,102 +55,68 @@ canvas.fig{width:100%;display:block;border-radius:10px;background:rgba(255,255,2
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .credit{font-size:11px;color:var(--mute);line-height:1.7;margin-top:22px}
 .credit a{color:var(--dim)}
-#panelToggle{display:none}
 
-/* ---- telescope ---- */
-#scope{position:fixed;left:16px;bottom:calc(104px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:14px;row-gap:6px;align-items:end}
-#scopeWrap{grid-column:1;grid-row:1}
-#scope .cap{grid-column:1;grid-row:2;justify-content:center}
-#hook{grid-column:2;grid-row:1}
-#scopeWrap{position:relative;width:240px;height:240px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 0 0 6px rgba(9,13,26,.55),0 10px 40px rgba(0,0,0,.5)}
-#scopeCanvas{width:240px;height:240px;display:block}
-#scopeLabels{position:absolute;inset:0;pointer-events:none}
-#scopeLabels span{position:absolute;transform:translate(-50%,-50%);font-size:10px;letter-spacing:.04em;color:#fff;text-shadow:0 0 4px #000,0 0 2px #000;white-space:nowrap}
-#scope .cap{display:flex;gap:10px;align-items:center}
-#scope label{display:flex;gap:4px;align-items:center;cursor:pointer}
+/* 左下：望遠鏡の月 */
+#scope{position:fixed;left:20px;bottom:calc(24px + env(safe-area-inset-bottom,0px));pointer-events:none}
+#scopeWrap{position:relative;width:200px;height:200px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 0 0 6px rgba(9,13,26,.5),0 10px 40px rgba(0,0,0,.5)}
+#scopeCanvas{width:100%;height:100%;display:block}
+#scopeLabels{display:none}
+#scope .lbl{font-size:11px;color:var(--dim);text-align:center;margin-top:8px;letter-spacing:.2em}
 
-/* ---- bottom bar: time ---- */
-#bar{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));border-radius:14px;padding:10px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
-#play{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:15px;cursor:pointer}
-#slider{width:100%;accent-color:var(--gold)}
-#ticks{position:relative;height:14px;font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums}
-#ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
-#ticks span.hl{color:var(--gold)}
-.qs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.qs button{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;white-space:nowrap}
-.qs button.on{background:var(--gold);color:#1a1408;border-color:var(--gold)}
-.lens{display:flex;gap:4px;margin-top:6px;justify-content:flex-end}
-.lens button{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:transparent;cursor:pointer;font-variant-numeric:tabular-nums}
-.lens button.on{border-color:var(--gold);color:var(--gold)}
-#hook{font-family:var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none;align-self:end;padding-bottom:8px;max-width:210px}
-#hook .k{font-size:13px;letter-spacing:.2em;color:var(--dim);font-family:var(--sans)}
-#hook .v{font-weight:800;font-size:44px;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1.1}
-#hook .v small{font-size:18px;margin-left:4px;color:var(--dim)}
-#hook .h{font-size:12px;color:var(--gold);font-family:var(--sans);margin-top:4px}
-#moment{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;opacity:0;transition:opacity 1.2s ease;text-shadow:0 2px 24px rgba(0,0,0,.8)}
+/* 中央下：いちばん大事な数字 */
+#center{position:fixed;left:50%;transform:translateX(-50%);top:calc(22px + env(safe-area-inset-top,0px));text-align:center;pointer-events:none}
+#center .k{font-size:14px;letter-spacing:.3em;color:var(--ink);opacity:.9}
+#center .v{font-family:var(--serif);font-weight:800;font-size:clamp(46px,6vw,70px);line-height:1.05;font-variant-numeric:tabular-nums}
+#center .v small{font-size:.4em;margin-left:4px;color:var(--dim)}
+#center .h{font-size:13px;color:var(--ink);margin-top:6px;letter-spacing:.08em;opacity:.85}
+
+/* 下：時間のバーと大きなボタン */
+#bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(760px,calc(100% - 40px));display:flex;flex-direction:column;gap:10px;align-items:stretch}
+#slider{width:100%;accent-color:var(--gold);height:22px}
+.btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btns button{font-size:15px;font-weight:500;padding:11px 18px;border-radius:999px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer}
+.btns button:hover{border-color:rgba(242,236,223,.4)}
+.btns .primary{background:var(--gold);color:#1a1408;border-color:var(--gold);font-weight:700}
+
+#moment{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
 #moment.on{opacity:1}
-#moment .a{font-family:var(--serif);font-weight:800;font-size:clamp(40px,7vw,86px);letter-spacing:.3em;color:#fff6de}
+#moment .a{font-family:var(--serif);font-weight:800;font-size:clamp(44px,8vw,96px);letter-spacing:.3em;color:#fff6de}
 #moment .b{font-size:15px;letter-spacing:.2em;color:var(--gold);margin-top:10px}
-#banner{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);font-size:13px;padding:7px 14px;border-radius:999px;white-space:nowrap}
-#banner b{color:var(--gold);font-weight:700}
-#banner.live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5a4a;margin-right:8px;vertical-align:0;animation:blink 1.4s infinite}
-@keyframes blink{50%{opacity:.25}}
-#shot{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--gold);background:rgba(232,198,126,.15);color:var(--gold);cursor:pointer}
-#hidePanel{position:absolute;right:14px;top:12px;font-size:11px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--dim)}
-#showPanel{position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer}
-#scopeWrap{cursor:ew-resize}
 #planetLbl{position:fixed;pointer-events:none;font-size:11px;color:#ffe9b8;text-shadow:0 0 4px #000;transform:translate(8px,-50%)}
+body.clean #top,body.clean #why,body.clean #panel,body.clean #scope,body.clean #center,body.clean #bar,body.clean #planetLbl{display:none!important}
 
-@media (max-width: 900px){
-  #hook .v{font-size:26px}
-  #hook .h{display:none}
-  #banner{top:auto;bottom:calc(210px + env(safe-area-inset-bottom,0px));font-size:11px}
-  #hidePanel,#showPanel{display:none!important}
-
-  #panel{left:12px;right:12px;width:auto;top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-height:52vh;transform:translateY(calc(100% + 170px));transition:transform .35s ease}
-  #panel.open{transform:none}
-  #panelToggle{display:block;position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer}
-  #scope{left:auto;right:12px;bottom:calc(200px + env(safe-area-inset-bottom,0px));grid-template-columns:auto auto}
-  #hook{grid-column:1;grid-row:1;text-align:right}
-  #scopeWrap{grid-column:2}
-  #scope .cap{grid-column:2}
-  #banner{display:none!important}
-  #panel{z-index:20;bottom:calc(200px + env(safe-area-inset-bottom,0px))}
-  body:has(#panel.open) #scope{display:none}
-  #scopeWrap,#scopeCanvas{width:120px;height:120px}
-  #scope .cap{font-size:10px}
-  #bar{grid-template-columns:auto 1fr;left:10px;right:10px}
-  #bar .right{grid-column:1 / -1}
-  .qs{justify-content:flex-start}
-  .lens{justify-content:flex-start}
+@media (max-width: 760px){
+  #top h1{font-size:28px}
+  #top .made{display:none}
+  #why{font-size:12px;padding:8px 12px;right:12px}
+  #panel{left:12px;right:12px;width:auto;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-height:70vh}
+  #scope{left:auto;right:12px;bottom:auto;top:calc(64px + env(safe-area-inset-top,0px))}
+  #scopeWrap{width:110px;height:110px}
+  #scope .lbl{display:none}
+  #center{left:20px;transform:none;text-align:left;top:calc(122px + env(safe-area-inset-top,0px))}
+  #center .v{font-size:40px}
+  #center .h{font-size:12px}
+  #bar{width:calc(100% - 24px)}
+  .btns button{font-size:13px;padding:9px 13px}
 }
-body.clean #top,body.clean #panel,body.clean #scope,body.clean #bar,body.clean #banner,body.clean #showPanel,body.clean #panelToggle,body.clean #planetLbl{display:none!important}
-@media (prefers-reduced-motion: reduce){#panel{transition:none}}
+@media (prefers-reduced-motion: reduce){#moment{transition:none}}
 </style>
 </head>
 <body>
-<canvas id="gl" aria-label="縁側から見た今夜の月の3D表示。ドラッグで見回せます。"></canvas>
+<canvas id="gl" aria-label="縁側から見た今夜の月。左右にドラッグすると時間が進みます。"></canvas>
 
-<div id="top">
-  <div class="eyebrow">2026 中秋の名月</div>
+<div id="top" class="shadow">
+  <div class="eyebrow">2026 中秋の名月 ・ 東京の空</div>
   <h1>今夜の名月</h1>
   <div class="when" id="when">9月25日(金) 20:00</div>
-  <div class="row">
-    <select id="city" aria-label="見る場所"></select>
-    <span class="pill" id="riseInfo">月の出 16:41</span>
-  </div>
   <div class="made">Claude Opus 5.5 で制作 ・ 画像も3Dモデルも使わず、すべてコード</div>
 </div>
 
-<div id="banner" class="glass"></div>
-
-<div id="moment"><div class="a">満月</div><div class="b" id="momentSub">9月27日 1:49</div></div>
-<button id="showPanel" class="glass" type="button" hidden>なぜ満月じゃない？</button>
-<button id="panelToggle" class="glass" type="button">なぜ満月じゃない？</button>
-<aside id="panel" class="glass" aria-label="解説">
+<button id="why" class="glass" type="button">なぜ満月じゃない？</button>
+<aside id="panel" class="glass" aria-label="解説" hidden>
   <button id="hidePanel" type="button">閉じる</button>
   <div class="eyebrow">2026年9月25日（金）</div>
-  <h2>今夜の月は、満月じゃない。</h2>
+  <h2>今夜の月は、<br>満月じゃない。</h2>
   <p>今年の十五夜（中秋の名月）は<b>9月25日</b>。でも月がいちばん丸くなる満月は、2日後の<b>9月27日 1時49分</b>です。</p>
   <div class="stats">
     <div class="stat"><div class="k">月齢</div><div class="v" id="sAge">14.3</div></div>
@@ -177,35 +142,38 @@ body.clean #top,body.clean #panel,body.clean #scope,body.clean #bar,body.clean #
 
   <h3>この月は、計算で描いています</h3>
   <p>月の位置・欠け方・模様の傾き・秤動（見える面のわずかな揺れ）は、選んだ場所と時刻から天文計算ライブラリ Astronomy Engine で求めています。月面は、満月が縁まで平らに明るく見える実際の光り方（ロンメル・ゼーリガー則）で描いています。</p>
-  <p>カメラのレンズを600mmにすると、写真と同じように月が大きく写ります。「月の出を望遠で」を押すと、今夜の月の出を再現します。</p>
+  <p>「月の出」を押すと、600mmの望遠レンズで今夜の月の出を再現します。月は実寸（見かけの直径0.52°）で描いているので、広角では小さく、望遠では写真と同じように大きく写ります。</p>
   <div class="credit">画像・3Dモデルは使わず、すべてコードで生成。Built with Claude Opus 5.5.<br>天文計算：Astronomy Engine（MIT）／3D：three.js（MIT）<br><a href="https://github.com/aiimpl/meigetsu" target="_blank" rel="noopener">ソースコード（GitHub）</a></div>
 </aside>
 
+<div id="moment"><div class="a">満月</div><div class="b" id="momentSub">9月27日 1:49</div></div>
+
 <div id="scope">
-  <div id="hook"><div class="k">満月まで、あと</div><div class="v" id="hookV">1.8<small>%</small></div><div class="h">望遠鏡の月を横にドラッグして、満月にしてみる →</div></div>
-  <div id="scopeWrap"><canvas id="scopeCanvas" width="480" height="480"></canvas><div id="scopeLabels"></div></div>
-  <div class="cap"><span>望遠鏡</span><label><input type="checkbox" id="lblToggle" /> 海の名前</label><button id="shot" type="button">この月を撮る</button></div>
+  <div id="scopeWrap"><canvas id="scopeCanvas" width="400" height="400"></canvas><div id="scopeLabels"></div></div>
+  <div class="lbl shadow">望遠鏡</div>
+</div>
+
+<div id="center" class="shadow">
+  <div class="k">満月まで、あと</div>
+  <div class="v" id="hookV">1.8<small>%</small></div>
+  <div class="h">← 左右にドラッグで時間が進む →</div>
+</div>
+
+<div id="bar">
+  <input id="slider" type="range" min="0" max="100" step="1" aria-label="時刻" />
+  <div class="btns">
+    <button type="button" data-q="rise">月の出</button>
+    <button type="button" data-q="jugoya">十五夜 20時</button>
+    <button type="button" data-q="full">満月の瞬間</button>
+    <button type="button" id="shot" class="primary">この月を撮る</button>
+  </div>
 </div>
 <div id="planetLbl"></div>
 
-<div id="bar" class="glass">
-  <button id="play" type="button" aria-label="再生">▶</button>
-  <div>
-    <input id="slider" type="range" min="0" max="100" step="1" aria-label="時刻" />
-    <div id="ticks"></div>
-  </div>
-  <div class="right">
-    <div class="qs">
-      <button type="button" data-q="rise">月の出を望遠で</button>
-      <button type="button" data-q="jugoya">十五夜 20時</button>
-      <button type="button" data-q="full">満月の瞬間</button>
-      <button type="button" data-q="now">いま</button>
-      <button type="button" id="sound">音を出す</button>
-      <button type="button" id="cloudBtn">雲あり</button>
-    </div>
-    <div class="lens" id="lens"></div>
-    <div class="lens"><button type="button" id="illusion" title="月は実寸（見かけの直径0.52°）で描いています。人の目は月を大きく感じる（月の錯視）ので、その印象の大きさで表示します">月の大きさ：実寸 0.52°</button></div>
-  </div>
+<div hidden aria-hidden="true">
+  <select id="city"></select><span id="riseInfo"></span><div id="banner"></div><button id="showPanel"></button><button id="panelToggle"></button>
+  <input type="checkbox" id="lblToggle" /><button id="play"></button><div id="ticks"></div><div id="lens"></div>
+  <button id="sound"></button><button id="cloudBtn"></button><button id="illusion"></button><button data-q="now"></button><div id="hook"></div>
 </div>
 
 <script src="./vendor/astronomy-engine/astronomy.browser.min.js"></script>
@@ -420,32 +388,45 @@ const MARIA = [
   ["危難の海", 17, 59, 8, 6], ["豊かの海", -8, 51, 8, 10], ["神酒の海", -15, 35, 5.5, 5], ["雲の海", -21, -17, 11, 9],
   ["湿りの海", -24, -39, 6, 5], ["氷の海", 56, 0, 42, 4.5],
 ];
-const EXTRA_DARK = [[13, 4, 4, 3], [2, 1, 3, 2], [-10, -23, 5, 4], [7, -30, 6, 5], [5, -50, 12, 14], [32, -50, 12, 12], [-2, -64, 9, 10], [-1, 87, 5, 5], [13, 86, 4, 4]];
+// 海をつなぐ補助の塊（嵐の大洋の広がり、入り江、小さな海）
+const EXTRA_DARK = [[25, -55, 15, 16], [5, -57, 13, 15], [-9, -45, 13, 10], [40, -45, 11, 8], [14, -70, 8, 13], [-2, -62, 9, 9], [11, -9, 7, 5], [13, 4, 5, 4], [2, 1, 4, 3],
+  [-10, -23, 7, 5], [7, -30, 8, 6], [20, 5, 5, 6], [-3, 18, 6, 5], [-1, 87, 5, 5], [13, 86, 4, 4], [48, 30, 10, 4], [52, -25, 14, 4]];
 const moonTex = (() => {
+  // 月面：海は「ノイズで揺らいだ楕円の和」、高地は細かな明暗、主なクレーターと光条を重ねる
   const W = 2048, H = 1024, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
-  const X = (lon) => ((lon / 360 + 0.5) % 1 + 1) % 1 * W, Y = (lat) => (90 - lat) / 180 * H;
+  const img = g.createImageData(W, H), px = img.data;
+  const hh = (x, y) => { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const nz = (x, y) => { const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const a = hh(ix, iy), b = hh(ix + 1, iy), c2 = hh(ix, iy + 1), d = hh(ix + 1, iy + 1); return a + (b - a) * ux + (c2 - a) * uy + (a - b - c2 + d) * ux * uy; };
+  const fb = (x, y) => nz(x, y) * .5 + nz(x * 2.1, y * 2.1) * .25 + nz(x * 4.3, y * 4.3) * .15 + nz(x * 8.7, y * 8.7) * .1;
+  const M = [...MARIA.map(([, la, lo, rl, rb]) => [la, lo, rl * 1.32, rb * 1.32, 1]), ...EXTRA_DARK.map(([la, lo, rl, rb]) => [la, lo, rl * 1.2, rb * 1.2, .9])];
+  for (let y = 0; y < H; y++) { const lat = 90 - (y + .5) / H * 180, cl = Math.cos(lat * DEG);
+    for (let x = 0; x < W; x++) { const lon = (x + .5) / W * 360 - 180;
+      const wl = lon + (fb(lon * .045 + 3, lat * .045) - .5) * 16, wt = lat + (fb(lon * .045, lat * .045 + 7) - .5) * 11;
+      let mare = 0; for (const [la, lo, rl, rb, k] of M) { let dl = wl - lo; if (dl > 180) dl -= 360; if (dl < -180) dl += 360;
+        const dx = dl * Math.max(cl, .3) / rl, dy = (wt - la) / rb; if (Math.abs(dx) > 1.6 || Math.abs(dy) > 1.6) continue;
+        const d = Math.hypot(dx, dy) + (fb(lon * .07 + la, lat * .07) - .5) * .9 + (fb(lon * .3, lat * .3) - .5) * .25; mare += k * smooth(1.15, .55, d); }
+      mare = Math.min(1, mare);
+      const n = fb(lon * .35, lat * .35), n2 = fb(lon * 1.6 + 9, lat * 1.6);
+      let v = .64 + (n - .5) * .18 + (n2 - .5) * .1; const mv = .31 + (n - .5) * .08 + (n2 - .5) * .05;
+      v = v * (1 - mare) + mv * mare;
+      const i = (y * W + x) * 4, tint = mare * (fb(lon * .05, lat * .05) - .5) * .06;
+      px[i] = Math.min(255, (v + tint) * 255); px[i + 1] = Math.min(255, v * 252); px[i + 2] = Math.min(255, (v - tint) * 244); px[i + 3] = 255; } }
+  g.putImageData(img, 0, 0);
+  const X = (lon) => ((lon / 360 + .5) % 1 + 1) % 1 * W, Y = (lat) => (90 - lat) / 180 * H;
   let s = 11; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  g.fillStyle = "#b7b2a8"; g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 9000; i++) { const x = rnd() * W, y = rnd() * H, r = Math.pow(rnd(), 3) * 16 + 1, l = rnd() < .5 ? 0 : 255; g.fillStyle = `rgba(${l},${l},${l},${.025 + rnd() * .04})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-  g.filter = "blur(5px)";
-  const blob = (lat, lon, rl, rb, col) => {
-    g.fillStyle = col; const cx = X(lon), cy = Y(lat), sx = rl / 360 * W / Math.max(Math.cos(lat * DEG), .35), sy = rb / 180 * H;
-    g.beginPath(); g.ellipse(cx, cy, sx, sy, 0, 0, 7); g.fill();
-    for (let k = 0; k < 26; k++) { const a = rnd() * 7, rr = .75 + rnd() * .35; g.beginPath(); g.ellipse(cx + Math.cos(a) * sx * rr, cy + Math.sin(a) * sy * rr, sx * (.18 + rnd() * .22), sy * (.18 + rnd() * .22), 0, 0, 7); g.fill(); }
-  };
-  for (const [, lat, lon, rl, rb] of MARIA) blob(lat, lon, rl, rb, "#6c6964");
-  for (const [lat, lon, rl, rb] of EXTRA_DARK) blob(lat, lon, rl, rb, "#74716b");
-  g.filter = "blur(1.2px)";
-  const crater = (lat, lon, r, dark) => { g.fillStyle = dark ? "#4e4c49" : "#e2ded6"; g.beginPath(); g.arc(X(lon), Y(lat), r, 0, 7); g.fill(); };
-  const rays = (lat, lon, n, len, alpha) => {
-    const cx = X(lon), cy = Y(lat);
-    for (let k = 0; k < n; k++) { const a = rnd() * 7, l = len * (.4 + rnd() * .8); g.strokeStyle = `rgba(232,228,220,${alpha * (.5 + rnd() * .5)})`; g.lineWidth = 1.5 + rnd() * 3; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * l * 1.3, cy + Math.sin(a) * l); g.stroke(); }
-  };
-  rays(-43.3, -11.2, 42, 300, .22); rays(9.6, -20.1, 26, 120, .2); rays(8.1, -38, 16, 70, .18); rays(16.1, 46.8, 12, 60, .16);
-  crater(-43.3, -11.2, 9); crater(9.6, -20.1, 8); crater(8.1, -38, 5); crater(23.7, -47.4, 6); crater(16.1, 46.8, 4);
-  crater(51.6, -9.4, 7, true); crater(-5.2, -68.6, 9, true);
-  for (let i = 0; i < 700; i++) { const lat = (rnd() * 2 - 1) * 80, lon = (rnd() * 2 - 1) * 180, r = Math.pow(rnd(), 4) * 7 + 1; crater(lat, lon, r, rnd() < .35); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+  const crater = (lat, lon, r, bright) => { const x = X(lon), y = Y(lat), sx = r / Math.max(Math.cos(lat * DEG), .3);
+    g.fillStyle = `rgba(${bright ? "235,232,224," : "60,58,55,"}${bright ? .5 : .06})`; g.beginPath(); g.ellipse(x, y, sx, r, 0, 0, 7); g.fill();
+    g.strokeStyle = `rgba(240,236,228,${bright ? .45 : .14})`; g.lineWidth = Math.max(1, r * .22); g.beginPath(); g.ellipse(x, y, sx, r, 0, 0, 7); g.stroke(); };
+  for (let i = 0; i < 3200; i++) { const lat = (rnd() * 2 - 1) * 82, lon = (rnd() * 2 - 1) * 180, r = Math.pow(rnd(), 3.6) * 7 + .6; crater(lat, lon, r, rnd() < .08); }
+  const rays = (lat, lon, n, len, alpha, w) => { const cx = X(lon), cy = Y(lat);
+    for (let k = 0; k < n; k++) { const a = rnd() * 6.283, l = len * (.35 + rnd() * .9); const gr = g.createLinearGradient(cx, cy, cx + Math.cos(a) * l * 1.3, cy + Math.sin(a) * l);
+      gr.addColorStop(0, `rgba(238,234,226,${alpha})`); gr.addColorStop(1, "rgba(238,234,226,0)"); g.strokeStyle = gr; g.lineWidth = w * (.5 + rnd());
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * l * 1.3, cy + Math.sin(a) * l); g.stroke(); } };
+  rays(-43.3, -11.2, 60, 460, .13, 1.6); rays(9.6, -20.1, 36, 170, .12, 1.4); rays(8.1, -38, 22, 90, .11, 1.2); rays(23.7, -47.4, 14, 60, .12, 1.1); rays(16.1, 46.8, 14, 80, .1, 1.2);
+  for (const [la, lo, r] of [[-43.3, -11.2, 8], [9.6, -20.1, 9], [8.1, -38, 5], [23.7, -47.4, 5], [16.1, 46.8, 4]]) crater(la, lo, r, true);
+  for (const [la, lo, r] of [[51.6, -9.4, 9], [-5.2, -68.6, 11]]) { g.fillStyle = "rgba(55,52,50,.85)"; g.beginPath(); g.ellipse(X(lo), Y(la), r / Math.cos(la * DEG), r, 0, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.generateMipmaps = true; return t;
 })();
 
 // ============================================================
@@ -817,7 +798,7 @@ function updateLook() {
   hemi.intensity = lerp(lerp(0.08, 0.3, twK), 1.1, dayK);
   hemi.color.setRGB(lerp(.35, .62, dayK), lerp(.45, .72, dayK), lerp(.75, .9, dayK));
   scene.fog.color.setRGB(lerp(lerp(.018, .16, twK), .55, dayK), lerp(lerp(.03, .16, twK), .66, dayK), lerp(lerp(.065, .28, twK), .8, dayK)); scene.fog.density = lerp(.0012, .00045, dayK);
-  renderer.toneMappingExposure = lerp(lerp(2.1, 1.25, twK), 0.8, dayK) * (state.lens >= 200 ? lerp(0.95, 0.62, smooth(-.12, .05, s)) : 1);
+  renderer.toneMappingExposure = lerp(lerp(2.1, 1.25, twK), 0.8, dayK) * (state.lens >= 200 ? lerp(0.42, 0.62, smooth(-.12, .05, s)) : 1);
   moonMat.userData.wide = lerp(2.6, 1.1, dayK);
   bloom.strength = lerp(0.95, 0.35, dayK);
   // 低い月ほど大気を長く通るので赤く暗くなる（大気減光）
@@ -874,6 +855,7 @@ document.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click",
   const q = b.dataset.q;
   if (q === "rise" && riseTime) { setT(riseClear()); setLens(600); }
   if (q === "jugoya") { setT(T_JUGOYA); setLens(14); }
+  document.querySelectorAll(".btns [data-q]").forEach((x) => x.classList.toggle("on", x === b));
   if (q === "full") { setT(FULL_MOON.getTime()); setLens(50); }
   if (q === "now") { const n = Date.now(); if (n > T_START && n < T_END) { setT(n); state.live = true; } else setT(T_JUGOYA); }
 }));
@@ -883,7 +865,8 @@ $("sound").addEventListener("click", () => { if (!AUD.ctx) AUD.start(); else if 
   setTimeout(() => { const on = AUD.ctx && AUD.ctx.state === "running"; $("sound").textContent = on ? "音を消す" : "音を出す"; $("sound").classList.toggle("on", on); }, 60); });
 $("cloudBtn").addEventListener("click", () => { const on = cloudU.amt.value > 0; cloudU.amt.value = on ? 0 : .24; $("cloudBtn").textContent = on ? "雲なし" : "雲あり"; });
 $("panelToggle").addEventListener("click", () => $("panel").classList.toggle("open"));
-$("hidePanel").addEventListener("click", () => { $("panel").hidden = true; $("showPanel").hidden = false; });
+$("hidePanel").addEventListener("click", () => { $("panel").hidden = true; });
+$("why").addEventListener("click", () => { $("panel").hidden = !$("panel").hidden; });
 $("showPanel").addEventListener("click", () => { $("panel").hidden = false; $("showPanel").hidden = true; });
 // 望遠鏡の月を横にドラッグ → 時間が進む（満月にする）
 { const sw = $("scopeWrap"); let sd = null;
@@ -903,12 +886,10 @@ $("shot").addEventListener("click", () => {
   const a = document.createElement("a"); a.download = `meigetsu-${d.getUTCMonth() + 1}${String(d.getUTCDate()).padStart(2, "0")}-${fmtJST(state.t, false).replace(":", "")}.png`; a.href = c.toDataURL("image/png"); a.click();
 });
 
-// 見回し（ドラッグ）
+// 画面を左右にドラッグ → 時間が進む／戻る（カメラは月を自動で追う）
 let drag = null;
-canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, yaw: state.yaw, pitch: state.pitch }; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener("pointermove", (e) => { if (!drag) return; const k = camera.fov * DEG / innerHeight;
-  if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) state.follow = false;
-  state.yaw = drag.yaw - (e.clientX - drag.x) * k; state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * k, -0.3, 1.45); });
+canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, t: state.t }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => { if (!drag) return; setT(drag.t + (e.clientX - drag.x) * (T_END - T_START) / Math.max(innerWidth, 400) * 0.9); });
 canvas.addEventListener("pointerup", () => { drag = null; });
 canvas.addEventListener("dblclick", () => { state.follow = true; });
 addEventListener("keydown", (e) => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); $("play").click(); } if (e.code === "KeyH") document.body.classList.toggle("clean"); });
@@ -1060,7 +1041,7 @@ function frame() {
     if (v.z < 1 && Math.abs(v.x) < .95 && Math.abs(v.y) < .95) { planetLbl.style.left = `${(v.x * .5 + .5) * innerWidth}px`; planetLbl.style.top = `${(-v.y * .5 + .5) * innerHeight}px`; lbl = p.jp; break; } }
   planetLbl.textContent = astro.sunDir.y < -.08 ? lbl : "";
   // 本画面
-  moonMat.uniforms.intensity.value = (moonMat.userData.wide ?? 2.6) * (1 + bloomPulse * 1.2);
+  moonMat.uniforms.intensity.value = (moonMat.userData.wide ?? 2.6) * (state.lens >= 200 ? lerp(.8, 1, smooth(-.12, .06, astro.sunDir.y)) : 1) * (1 + bloomPulse * 1.2);
   composer.render();
   // 望遠鏡
   scopeCam.position.copy(camera.position); scopeCam.up.set(0, 1, 0); scopeCam.lookAt(astro.center);
@@ -1076,7 +1057,7 @@ function frame() {
     if (vis < .15) { sp.hidden = true; continue; }
     const v = wp.project(scopeCam); sp.hidden = false; sp.style.left = `${(v.x * .5 + .5) * 100}%`; sp.style.top = `${(-v.y * .5 + .5) * 100}%`; }
 }
-if (location.search.includes("debug")) window.__dbg = { state, astro, camera, setT, setLens };
+if (location.search.includes("debug")) window.__dbg = { state, astro, camera, setT, setLens, moonTex };
 frame();
 </script>
 </body>
