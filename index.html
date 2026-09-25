@@ -111,8 +111,14 @@ canvas.fig{width:100%;display:block;border-radius:10px;background:rgba(255,255,2
   #panel{left:12px;right:12px;width:auto;top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));max-height:52vh;transform:translateY(calc(100% + 170px));transition:transform .35s ease}
   #panel.open{transform:none}
   #panelToggle{display:block;position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer}
-  #scope{left:auto;right:12px;bottom:calc(158px + env(safe-area-inset-bottom,0px))}
-  #scopeWrap,#scopeCanvas{width:130px;height:130px}
+  #scope{left:auto;right:12px;bottom:calc(200px + env(safe-area-inset-bottom,0px));grid-template-columns:auto auto}
+  #hook{grid-column:1;grid-row:1;text-align:right}
+  #scopeWrap{grid-column:2}
+  #scope .cap{grid-column:2}
+  #banner{display:none!important}
+  #panel{z-index:20;bottom:calc(200px + env(safe-area-inset-bottom,0px))}
+  body:has(#panel.open) #scope{display:none}
+  #scopeWrap,#scopeCanvas{width:120px;height:120px}
   #scope .cap{font-size:10px}
   #bar{grid-template-columns:auto 1fr;left:10px;right:10px}
   #bar .right{grid-column:1 / -1}
@@ -198,6 +204,7 @@ body.clean #top,body.clean #panel,body.clean #scope,body.clean #bar,body.clean #
       <button type="button" id="cloudBtn">雲あり</button>
     </div>
     <div class="lens" id="lens"></div>
+    <div class="lens"><button type="button" id="illusion" title="月は実寸（見かけの直径0.52°）で描いています。人の目は月を大きく感じる（月の錯視）ので、その印象の大きさで表示します">月の大きさ：実寸 0.52°</button></div>
   </div>
 </div>
 
@@ -220,6 +227,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
 const Astro = window.Astronomy;
+const isMobileDevice = () => matchMedia("(pointer:coarse)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 const HOUR = 36e5, DAY = 864e5, JST = 9 * HOUR, AU_KM = 149597870.7, MOON_R_KM = 1737.4;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -270,7 +278,9 @@ const canvas = document.getElementById("gl");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0d1426, 0.0011);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 20000);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -474,14 +484,14 @@ const fbm = (x, z) => vn(x, z) * .5 + vn(x * 2.1, z * 2.1) * .3 + vn(x * 4.3, z 
 const RISE_AZ = (() => { const o = new Astro.Observer(35.6812, 139.7671, 40), r = Astro.SearchRiseSet(Astro.Body.Moon, o, +1, new Date(Date.UTC(2026, 8, 24, 15, 0)), 1.2);
   const e = Astro.Equator(Astro.Body.Moon, r.date, o, true, true); return Astro.Horizon(r.date, o, e.ra, e.dec, "normal").azimuth; })();
 const HILL = { x: Math.sin(RISE_AZ * DEG) * 420, z: -Math.cos(RISE_AZ * DEG) * 420 };
-const hillH = (x, z) => { const d = Math.hypot(x - HILL.x, z - HILL.z); return 44 * Math.exp(-(d * d) / (2 * 150 * 150)); };
+const hillH = (x, z) => { const d = Math.hypot(x - HILL.x, z - HILL.z); return 44 * Math.exp(-(d * d) / (2 * 150 * 150)) * smooth(140, 280, Math.hypot(x, z)); };
 const groundH = (x, z) => hillH(x, z) + baseH(x, z);
 const baseH = (x, z) => { const r = Math.hypot(x, z); return smooth(260, 2000, r) * (28 + fbm(x * .0009, z * .0009) * 90) + smooth(2600, 7000, r) * fbm(x * .0003 + 7, z * .0003) * 260 - 0.02; };
 {
   const g = new THREE.PlaneGeometry(16000, 16000, 320, 320).rotateX(-Math.PI / 2), p = g.attributes.position, col = [];
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), h = groundH(x, z); p.setY(i, h); const k = smooth(200, 1600, Math.hypot(x, z)); col.push(lerp(.07, .035, k), lerp(.075, .045, k), lerp(.045, .04, k)); }
   g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
-  scene.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })));
+  { const gm = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); gm.receiveShadow = true; scene.add(gm); }
   const tm = null, d = new THREE.Object3D(); let n = 0, s = 3; const N = 1600, treeSpots = [];
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   while (n < N) { const r = 500 + rnd() * 3200, a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r; if (rnd() > .35 + smooth(700, 2000, r) * .6) continue;
@@ -526,13 +536,26 @@ const FACE_AZ = 135;
 const veranda = new THREE.Group();
 veranda.rotation.y = Math.atan2(Math.sin(FACE_AZ * DEG), -Math.cos(FACE_AZ * DEG));
 scene.add(veranda);
-const wood = new THREE.MeshStandardMaterial({ color: 0x6a4c34, roughness: .7 }), woodDark = new THREE.MeshStandardMaterial({ color: 0x1e1610, roughness: .9 });
-const vbox = (w, h, d, x, y, z, m = wood) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); veranda.add(o); return o; };
+const woodTex = (() => { const W = 256, H = 1024, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d"); let q = 13;
+  const r2 = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  g.fillStyle = "#7a5a3e"; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) { const x = r2() * W, w = 1 + r2() * 3, l = r2() < .5 ? "rgba(40,24,12," : "rgba(160,120,80,"; g.fillStyle = l + (.08 + r2() * .12) + ")";
+    g.beginPath(); g.moveTo(x, 0); for (let y = 0; y <= H; y += 32) g.lineTo(x + Math.sin(y * .012 + i) * 5 + (r2() - .5) * 2, y); g.lineTo(x + w, H); g.lineTo(x + w, 0); g.fill(); }
+  for (let k = 0; k < 3; k++) { const y = r2() * H; g.fillStyle = "rgba(40,24,12,.35)"; g.beginPath(); g.ellipse(r2() * W, y, 6 + r2() * 5, 14 + r2() * 8, 0, 0, 7); g.fill(); }
+  g.fillStyle = "rgba(20,12,6,.8)"; g.fillRect(0, 0, 3, H); g.fillRect(W - 2, 0, 2, H);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; })();
+const tatamiTex = (() => { const W = 512, H = 512, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+  g.fillStyle = "#8f8c5c"; g.fillRect(0, 0, W, H); for (let y = 0; y < H; y += 3) { g.fillStyle = y % 6 ? "rgba(60,58,30,.22)" : "rgba(200,196,140,.12)"; g.fillRect(0, y, W, 1.5); }
+  for (let x = 0; x < W; x += 64) { g.fillStyle = "rgba(50,48,24,.25)"; g.fillRect(x, 0, 1.5, H); }
+  g.fillStyle = "#1d2230"; g.fillRect(0, 0, W, 22); g.fillRect(0, H - 22, W, 22);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; })();
+const wood = new THREE.MeshStandardMaterial({ map: woodTex, roughness: .48, color: 0xd8c8b4 }), woodDark = new THREE.MeshStandardMaterial({ color: 0x1e1610, roughness: .9 });
+const vbox = (w, h, d, x, y, z, m = wood) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; veranda.add(o); return o; };
 for (let i = -12; i <= 12; i++) vbox(.2, .05, 3.6, i * .21, .45, -.4);
-vbox(5.4, .012, 1.9, 0, .48, -1.6, new THREE.MeshStandardMaterial({ color: 0x6b6a4a, roughness: .95 }));
+vbox(5.4, .012, 1.9, 0, .48, -1.6, new THREE.MeshStandardMaterial({ map: tatamiTex, roughness: .9 }));
 vbox(5.4, .12, .12, 0, .4, 1.42, woodDark);
-vbox(.13, 2.6, .13, -2.55, 1.3, 1.35, woodDark); vbox(.13, 2.6, .13, 2.55, 1.3, 1.35, woodDark);
-vbox(5.6, .14, .14, 0, 2.62, 1.35, woodDark);
+vbox(.13, 2.95, .13, -2.55, 1.47, 1.35, woodDark); vbox(.13, 2.95, .13, 2.55, 1.47, 1.35, woodDark);
+vbox(5.6, .14, .14, 0, 2.97, 1.35, woodDark);
 vbox(.13, 2.6, .13, -2.55, 1.3, -2.4, woodDark); vbox(.13, 2.6, .13, 2.55, 1.3, -2.4, woodDark);
 vbox(5.6, .14, .14, 0, 2.62, -2.4, woodDark);
 // 三方（台）と月見団子（9＋4＋2＝15個）
@@ -576,28 +599,145 @@ const susukiGeo = (() => { const a = new THREE.PlaneGeometry(.55, 1.7).translate
   for (const k of ["position", "normal", "uv"]) g.setAttribute(k, new THREE.Float32BufferAttribute([...a.attributes[k].array, ...b.attributes[k].array], a.attributes[k].itemSize));
   const ia = [...a.index.array]; g.setIndex([...ia, ...ia.map((i) => i + a.attributes.position.count)]); return g; })();
 {
-  const N = 3400, m = new THREE.InstancedMesh(susukiGeo, susukiMat, N), d = new THREE.Object3D(); let s = 9, n = 0;
+  const N = 2200, m = new THREE.InstancedMesh(susukiGeo, susukiMat, N), d = new THREE.Object3D(); let s = 9, n = 0;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  while (n < N) { const dist = 3.2 + Math.pow(rnd(), .8) * 70, ang = (rnd() * 2 - 1) * 1.25, lx = Math.sin(ang) * dist, lz = Math.cos(ang) * dist;
+  while (n < N) { const dist = 40 + Math.pow(rnd(), .8) * 55, ang = (rnd() * 2 - 1) * 1.25, lx = Math.sin(ang) * dist, lz = Math.cos(ang) * dist;
     if (rnd() > .25 + .75 * smooth(0, 1, (Math.sin(lx * .09) + Math.cos(lz * .07) + 2) / 4)) continue;
     const sc = .75 + rnd() * .6; d.position.set(lx, 0, lz + 1.6); d.rotation.set(0, rnd() * 6.3, (rnd() - .5) * .15); d.scale.set(sc, sc * (.8 + rnd() * .5), sc); d.updateMatrix(); m.setMatrixAt(n++, d.matrix); }
   veranda.add(m);
   // 花瓶に生けたススキ
   const vase = new THREE.Mesh(new THREE.CylinderGeometry(.06, .075, .24, 20), new THREE.MeshStandardMaterial({ color: 0x2b3440, roughness: .35, metalness: .1 }));
   vase.position.set(-.55, .595, .25); veranda.add(vase);
-  const vs = new THREE.InstancedMesh(susukiGeo, susukiMat, 5);
-  for (let i = 0; i < 5; i++) { d.position.set(-.55 + (i - 2) * .012, .62, .25); d.rotation.set((i - 2) * .12, i * 1.3, (i - 2) * .18); d.scale.setScalar(.36 + i * .02); d.updateMatrix(); vs.setMatrixAt(i, d.matrix); }
-  veranda.add(vs);
+}
+
+
+// ============================================================
+// ススキの株（3D）：弓なりの葉（白い中筋）・茎・しだれる穂。
+// 穂は絹毛の透け感を透過テクスチャで、月を背にすると銀色に光る
+// ============================================================
+const hairTex = (() => { const W = 64, H = 256, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d"); let q = 41;
+  const r2 = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  g.clearRect(0, 0, W, H); g.strokeStyle = "rgba(210,200,180,1)"; g.lineWidth = 2; g.beginPath(); g.moveTo(W / 2, H); g.lineTo(W / 2, 0); g.stroke();
+  for (let i = 0; i < 420; i++) { const y0 = r2() * H, sd = r2() < .5 ? -1 : 1, len = 8 + r2() * 26 * (0.4 + 0.6 * (1 - y0 / H)), l = 205 + r2() * 50;
+    g.strokeStyle = `rgba(${l},${l - 6},${l - 22},${.35 + r2() * .55})`; g.lineWidth = .6 + r2() * .9;
+    g.beginPath(); g.moveTo(W / 2 + sd * r2() * 2, y0); g.quadraticCurveTo(W / 2 + sd * len * .5, y0 - len * .15, W / 2 + sd * len, y0 - len * .45); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; })();
+const backU = { dir: { value: new THREE.Vector3(0, 0, -1) }, col: { value: new THREE.Color(0, 0, 0) } };
+function plantMaterial(opts, flutter, back) {
+  const m = new THREE.MeshStandardMaterial(opts);
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, { uWind: windU, uCut: cutU, uLDir: backU.dir, uBack: backU.col });
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uWind, uCut;").replace("#include <begin_vertex>", `#include <begin_vertex>
+      vec3 ip = vec3(0.);
+      #ifdef USE_INSTANCING
+      ip = instanceMatrix[3].xyz;
+      #endif
+      float hk = max(position.y, 0.) / 1.8; float ph = ip.x*.31 + ip.z*.23;
+      float gust = sin(uWind*.9 + ph) * .6 + sin(uWind*2.3 + ph*1.7) * .25;
+      transformed.x += (gust * .09 + sin(uWind*6. + position.y*9. + ph) * ${flutter.toFixed(3)} * uv.y) * hk * hk;
+      transformed.z += (cos(uWind*.7 + ph) * .04) * hk * hk;
+      vec3 wpI = (modelMatrix * vec4(ip, 1.)).xyz; if (length(wpI - cameraPosition) < uCut) transformed *= 0.;`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uLDir, uBack;").replace("#include <opaque_fragment>",
+      `outgoingLight += diffuseColor.rgb * uBack * ${back.toFixed(2)} * pow(max(dot(-normalize(vViewPosition), uLDir), 0.), 3.);\n#include <opaque_fragment>`);
+  };
+  return m;
+}
+const leafMat = plantMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: .72 }, .012, .5);
+const plumeMat = plantMaterial({ map: hairTex, vertexColors: true, alphaTest: .3, side: THREE.DoubleSide, roughness: .6 }, .05, 1.1);
+function buildClump(seed, nLeaves, nCulms, plumeOnly = false) {
+  let q = seed; const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  const L = { p: [], c: [], u: [], i: [] }, P = { p: [], c: [], u: [], i: [] };
+  const strip = (B, pts, widthFn, sideFn, colFn, cols = 2) => {
+    const base = B.p.length / 3, n = pts.length;
+    for (let k = 0; k < n; k++) { const t = k / (n - 1), w = widthFn(t), sd = sideFn(k, t);
+      for (let j = 0; j < cols; j++) { const f = cols === 3 ? j - 1 : (j === 0 ? -1 : 1), pt = pts[k];
+        B.p.push(pt.x + sd.x * w * f, pt.y + sd.y * w * f, pt.z + sd.z * w * f); const col = colFn(t, j, cols); B.c.push(col[0], col[1], col[2]); B.u.push(cols === 3 ? j / 2 : j, t); } }
+    for (let k = 0; k < n - 1; k++) for (let j = 0; j < cols - 1; j++) { const a = base + k * cols + j, b = a + cols; B.i.push(a, b, a + 1, a + 1, b, b + 1); } };
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  if (!plumeOnly) for (let l = 0; l < nLeaves; l++) {
+    const a = r() * 6.283, len = .55 + r() * .5, hh = .45 + r() * .45, bx = Math.cos(a) * r() * .07, bz = Math.sin(a) * r() * .07, d = V(Math.cos(a), 0, Math.sin(a)), side = V(-Math.sin(a), 0, Math.cos(a));
+    const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push(V(bx + d.x * len * Math.pow(t, 1.15), hh * (2 * t - 1.3 * t * t) * (1 + r() * .02), bz + d.z * len * Math.pow(t, 1.15))); }
+    const g0 = [.16 + r() * .05, .22 + r() * .05, .09], g1 = [.4 + r() * .08, .4 + r() * .06, .18], g2 = [.55, .47, .3];
+    strip(L, pts, (t) => .011 * Math.sin(Math.PI * Math.min(t * 1.1 + .08, 1)) + .0015, (k, t) => side.clone().applyAxisAngle(d, t * 1.1 * (r() < .5 ? 1 : -1) * .6 + .3),
+      (t, j) => { const c = t < .55 ? g0.map((v, i) => v + (g1[i] - v) * t / .55) : g1.map((v, i) => v + (g2[i] - v) * (t - .55) / .45); return j === 1 ? c.map((v) => v * .6 + .38) : c; }, 3);
+  }
+  for (let cI = 0; cI < nCulms; cI++) {
+    const a = r() * 6.283, lean = .05 + r() * .12, hc = plumeOnly ? .55 + r() * .12 : 1.25 + r() * .6, droopA = .6 + (r() - .5) * .8;
+    const lx = Math.cos(a) * lean, lz = Math.sin(a) * lean, pts = [];
+    for (let k = 0; k <= 7; k++) { const t = k / 7; pts.push(V(lx * t * t * hc, hc * t, lz * t * t * hc)); }
+    if (!plumeOnly || true) { const stemCol = () => [.42, .4, .24]; strip(L, pts, () => .0045, () => V(1, 0, 0), stemCol); strip(L, pts, () => .0045, () => V(0, 0, 1), stemCol); }
+    const top = pts[pts.length - 1], dirD = V(Math.cos(droopA), 0, Math.sin(droopA)), nb = 12 + Math.floor(r() * 8), rl = .2 + r() * .08;
+    const tint = r() < .35 ? [.6, .5, .45] : [.7, .67, .6];
+    for (let b = 0; b < nb; b++) {
+      const tb = b / nb, o = top.clone().add(V(dirD.x * rl * tb * .5, rl * (1 - tb) * .15 + tb * .02, dirD.z * rl * tb * .5)), az = r() * 6.283, out = V(Math.cos(az), 0, Math.sin(az));
+      const bl = .12 + r() * .14, pts2 = [];
+      for (let k = 0; k <= 5; k++) { const t = k / 5; pts2.push(o.clone().add(out.clone().multiplyScalar(bl * t * .45)).add(dirD.clone().multiplyScalar(bl * t * .55)).add(V(0, bl * (.55 * t - 1.25 * t * t), 0))); }
+      const side = V(-out.z, 0, out.x);
+      strip(P, pts2, (t) => (.026 + r() * .004) * (1 - t * .55), () => side, (t) => tint.map((v) => v * (.9 + t * .1)));
+    }
+  }
+  const mk = (B) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.c, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(B.u, 2)); g.setIndex(B.i); g.computeVertexNormals(); return g; };
+  return { leaf: mk(L), plume: mk(P) };
+}
+{
+  const VAR = isMobileDevice() ? 3 : 6, PER = isMobileDevice() ? 90 : 170, d = new THREE.Object3D(); let q = 77;
+  const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  for (let v = 0; v < VAR; v++) {
+    const cl = buildClump(1000 + v * 97, 18 + v * 2, 5 + (v % 3)), ml = new THREE.InstancedMesh(cl.leaf, leafMat, PER), mp = new THREE.InstancedMesh(cl.plume, plumeMat, PER); let n = 0;
+    while (n < PER) { const dist = 1.9 + Math.pow(r(), .8) * 40, ang = (r() * 2 - 1) * 1.3, lx = Math.sin(ang) * dist, lz = Math.cos(ang) * dist + 1.5;
+      if (r() > .2 + .8 * smooth(0, 1, (Math.sin(lx * .11 + v) + Math.cos(lz * .08) + 2) / 4)) continue;
+      const sc = .65 + Math.pow(r(), 1.5) * .75; d.position.set(lx, 0, lz); d.rotation.set(0, r() * 6.3, (r() - .5) * .12); d.scale.set(sc, sc * (.8 + r() * .45), sc); d.updateMatrix(); ml.setMatrixAt(n, d.matrix); mp.setMatrixAt(n, d.matrix); n++; }
+    for (const m of [ml, mp]) { m.castShadow = true; m.receiveShadow = true; veranda.add(m); }
+  }
+  // 花瓶に生けたススキ（3Dの茎と穂）
+  const vc = buildClump(4242, 0, 5, true), vl = new THREE.Mesh(vc.leaf, leafMat), vp = new THREE.Mesh(vc.plume, plumeMat);
+  for (const m of [vl, vp]) { m.position.set(-.55, .7, .25); m.castShadow = true; veranda.add(m); }
+}
+
+
+// ============================================================
+// 地面の秋草：短い草を1本ずつ描き、カメラの周りに敷き詰める（前作と同じ手法）
+// ============================================================
+const grassU = { uT: windU, uCam: { value: new THREE.Vector3() }, uSky: { value: new THREE.Color() }, uMoon: { value: new THREE.Color() }, uMoonDir: skyU.moonDir, uLamp: { value: new THREE.Vector3() }, uLampK: { value: 0 } };
+{
+  const COUNT = isMobileDevice() ? 70000 : 220000, SIZE = 44, g = new THREE.InstancedBufferGeometry();
+  const bp = [], bi = []; const seg = 3; for (let i = 0; i < seg; i++) { const t = i / seg, w = .5 * (1 - Math.pow(t, 1.4)); bp.push(-w, t, 0, w, t, 0); } bp.push(0, 1, 0);
+  for (let i = 0; i < seg - 1; i++) { const a = i * 2; bi.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } bi.push((seg - 1) * 2, (seg - 1) * 2 + 1, seg * 2);
+  g.setAttribute("position", new THREE.Float32BufferAttribute(bp, 3)); g.setIndex(bi);
+  const inst = new Float32Array(COUNT * 4); let q = 5; const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < COUNT; i++) { inst[i * 4] = r() * SIZE; inst[i * 4 + 1] = r() * SIZE; inst[i * 4 + 2] = r(); inst[i * 4 + 3] = r(); }
+  g.setAttribute("aI", new THREE.InstancedBufferAttribute(inst, 4)); g.instanceCount = COUNT;
+  const m = new THREE.ShaderMaterial({ side: THREE.DoubleSide, uniforms: { ...grassU, uSize: { value: SIZE } },
+    vertexShader: `uniform vec3 uCam; uniform float uSize, uT; attribute vec4 aI; varying vec3 vC; varying float vT; varying vec3 vW;
+      void main(){ vec2 p = aI.xy + uSize*floor((uCam.xz - aI.xy)/uSize + .5); float dist = length(p - uCam.xz);
+        float fade = 1. - smoothstep(uSize*.36, uSize*.5, dist); float t = position.y;
+        float h = (.12 + aI.w*.24) * fade; float a = aI.z*57. + aI.w*23.; vec2 dir = vec2(cos(a), sin(a)), sd = vec2(-dir.y, dir.x);
+        float sway = sin(uT*1.3 + p.x*.4 + p.y*.3)*.05 + sin(uT*3.1 + aI.z*30.)*.015; vec2 off = (dir*.35*(aI.w-.3) + vec2(sway, sway*.4)) * t*t*h;
+        float w = .012*position.x*(.7+.6*aI.w)*fade;
+        vec3 wp = vec3(p.x + sd.x*w + off.x, t*h, p.y + sd.y*w + off.y); vW = wp; vT = t;
+        vec3 dry = vec3(.36,.31,.18), green = vec3(.16,.2,.08); vC = mix(green, dry, smoothstep(.3,.9,fract(aI.z*7.3 + aI.w*3.1))) * (.6 + .8*aI.w);
+        gl_Position = projectionMatrix*viewMatrix*vec4(wp,1.); }`,
+    fragmentShader: `uniform vec3 uSky, uMoon, uMoonDir, uLamp; uniform float uLampK; varying vec3 vC; varying float vT; varying vec3 vW;
+      void main(){ vec3 V = normalize(cameraPosition - vW); float back = pow(max(dot(-V, uMoonDir), 0.), 3.) * vT;
+        float ld = length(vW - uLamp); vec3 lamp = vec3(1.,.62,.3) * uLampK / (1. + ld*ld*1.6);
+        vec3 col = vC * (uSky*.5 + uMoon*(.35 + .65*vT) + uMoon*back*1.4 + lamp) * mix(.35, 1., vT);
+        gl_FragColor = vec4(col, 1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; scene.add(mesh);
 }
 
 // 行灯：縁側を暖かく照らす灯り
-{ const andon = new THREE.Group(); andon.position.set(-1.35, .48, -.55); veranda.add(andon);
+{ const andon = new THREE.Group(); andon.position.set(-1.1, .48, -2.35); veranda.add(andon);
   const paper = new THREE.Mesh(new THREE.BoxGeometry(.24, .38, .24), new THREE.MeshStandardMaterial({ color: 0xf6e6c4, emissive: 0xffb866, emissiveIntensity: .45, roughness: .9 }));
   paper.position.y = .27; andon.add(paper);
   for (const [x, z] of [[-.13, -.13], [.13, -.13], [-.13, .13], [.13, .13]]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(.025, .5, .025), woodDark); leg.position.set(x, .25, z); andon.add(leg); }
-  const lamp = new THREE.PointLight(0xffb86a, 7, 4.5, 1.8); lamp.position.set(0, .3, 0); andon.add(lamp); }
+  const lamp = new THREE.PointLight(0xffb86a, 10, 6, 1.7); lamp.position.set(0, .3, 0); andon.add(lamp);
+  veranda.updateMatrixWorld(true); lamp.getWorldPosition(grassU.uLamp.value); grassU.uLampK.value = .9; }
 // 光：月光・太陽光・空の光
 const moonLight = new THREE.DirectionalLight(0xb8c8ff, 0.3); scene.add(moonLight, moonLight.target);
+moonLight.castShadow = true; moonLight.shadow.mapSize.set(2048, 2048); { const c = moonLight.shadow.camera; c.left = -28; c.right = 28; c.top = 28; c.bottom = -28; c.near = 1; c.far = 400; } moonLight.shadow.bias = -.0004; moonLight.shadow.normalBias = .02; moonLight.shadow.radius = 3;
 const sunLight = new THREE.DirectionalLight(0xffe2c0, 0); scene.add(sunLight, sunLight.target);
 const hemi = new THREE.HemisphereLight(0x5a74a8, 0x1a1a14, 0.2); scene.add(hemi);
 
@@ -654,7 +794,7 @@ function updateAstro() {
   state.obs = obs;
 }
 function placeMoon() {
-  const r = MOON_D * MOON_R_KM / astro.distKm, c = astro.moonDir.clone().multiplyScalar(MOON_D).add(camera.position);
+  const r = MOON_D * MOON_R_KM / astro.distKm * (state.illusion && state.lens < 200 ? 2.6 : 1), c = astro.moonDir.clone().multiplyScalar(MOON_D).add(camera.position);
   astro.radius = r; astro.center = c;
   const zAxis = astro.P.clone().cross(astro.N);
   const m = new THREE.Matrix4().makeBasis(astro.P.clone().multiplyScalar(r), astro.N.clone().multiplyScalar(r), zAxis.multiplyScalar(r)).setPosition(c);
@@ -669,10 +809,14 @@ function updateLook() {
   skyU.sunDir.value.copy(astro.sunDir); skyU.moonDir.value.copy(astro.moonDir); skyU.moonGlow.value = astro.frac * moonUp;
   starGroup.userData.mat.uniforms.vis.value = (1 - twK) * 0.95;
   planetPts.material.opacity = (1 - smooth(-.2, -.06, s));
-  moonLight.position.copy(astro.moonDir).multiplyScalar(100); moonLight.intensity = 1.25 * astro.frac * moonUp * (1 - dayK);
+  { const fwd = new THREE.Vector3(Math.sin(FACE_AZ * DEG), 0, -Math.cos(FACE_AZ * DEG)), ctr = camera.position.clone().addScaledVector(fwd, 14); ctr.y = 0; moonLight.target.position.copy(ctr); moonLight.position.copy(ctr).addScaledVector(astro.moonDir, 200); moonLight.target.updateMatrixWorld(); }
+  backU.col.value.setRGB(.55, .62, .8).multiplyScalar(astro.frac * moonUp * (1 - dayK) * 1.3);
+  grassU.uMoon.value.setRGB(.5, .56, .75).multiplyScalar(moonLight.intensity * Math.max(astro.moonDir.y, 0) * 2.2 + sunLight.intensity * .45);
+  grassU.uSky.value.copy(hemi.color).multiplyScalar(hemi.intensity); moonLight.intensity = 1.25 * astro.frac * moonUp * (1 - dayK);
   sunLight.position.copy(astro.sunDir).multiplyScalar(100); sunLight.intensity = 2.6 * smooth(-.02, .12, s);
   hemi.intensity = lerp(lerp(0.08, 0.3, twK), 1.1, dayK);
   hemi.color.setRGB(lerp(.35, .62, dayK), lerp(.45, .72, dayK), lerp(.75, .9, dayK));
+  scene.fog.color.setRGB(lerp(lerp(.018, .16, twK), .55, dayK), lerp(lerp(.03, .16, twK), .66, dayK), lerp(lerp(.065, .28, twK), .8, dayK)); scene.fog.density = lerp(.0012, .00045, dayK);
   renderer.toneMappingExposure = lerp(lerp(2.1, 1.25, twK), 0.8, dayK) * (state.lens >= 200 ? lerp(0.95, 0.62, smooth(-.12, .05, s)) : 1);
   moonMat.userData.wide = lerp(2.6, 1.1, dayK);
   bloom.strength = lerp(0.95, 0.35, dayK);
@@ -734,6 +878,7 @@ document.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click",
   if (q === "now") { const n = Date.now(); if (n > T_START && n < T_END) { setT(n); state.live = true; } else setT(T_JUGOYA); }
 }));
 $("lblToggle").addEventListener("change", (e) => { state.labels = e.target.checked; });
+$("illusion").addEventListener("click", () => { state.illusion = !state.illusion; $("illusion").textContent = state.illusion ? "月の大きさ：目の印象（月の錯視）" : "月の大きさ：実寸 0.52°"; $("illusion").classList.toggle("on", state.illusion); });
 $("sound").addEventListener("click", () => { if (!AUD.ctx) AUD.start(); else if (AUD.ctx.state === "running") AUD.ctx.suspend(); else AUD.ctx.resume();
   setTimeout(() => { const on = AUD.ctx && AUD.ctx.state === "running"; $("sound").textContent = on ? "音を消す" : "音を出す"; $("sound").classList.toggle("on", on); }, 60); });
 $("cloudBtn").addEventListener("click", () => { const on = cloudU.amt.value > 0; cloudU.amt.value = on ? 0 : .24; $("cloudBtn").textContent = on ? "雲なし" : "雲あり"; });
@@ -908,6 +1053,8 @@ function frame() {
   const dir = new THREE.Vector3(Math.sin(-state.yaw) * Math.cos(state.pitch), Math.sin(state.pitch), -Math.cos(-state.yaw) * Math.cos(state.pitch));
   camera.lookAt(camera.position.clone().add(dir));
   placeMoon(); AUD.tick();
+  backU.dir.value.copy(astro.moonDir).transformDirection(camera.matrixWorldInverse);
+  grassU.uCam.value.copy(camera.position);
   // 惑星のラベル（土星など）
   let lbl = ""; for (const p of astro.planets || []) { if (p.alt < 2) continue; const v = p.pos.clone().project(camera);
     if (v.z < 1 && Math.abs(v.x) < .95 && Math.abs(v.y) < .95) { planetLbl.style.left = `${(v.x * .5 + .5) * innerWidth}px`; planetLbl.style.top = `${(-v.y * .5 + .5) * innerHeight}px`; lbl = p.jp; break; } }
